@@ -1,20 +1,24 @@
 import { openai } from '@/utils/openai';
+import OpenAI from 'openai';
 
 export interface AgentConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  apiKey?: string;
 }
 
 export class BaseAgent {
   protected model: string;
   protected temperature: number;
   protected maxTokens: number;
+  protected apiKey?: string;
 
   constructor(config?: AgentConfig) {
     this.model = config?.model || 'gpt-4-turbo';
     this.temperature = config?.temperature || 0.7;
     this.maxTokens = config?.maxTokens || 1500;
+    this.apiKey = config?.apiKey;
   }
 
   /**
@@ -24,7 +28,11 @@ export class BaseAgent {
    */
   protected async generateAnalysis(prompt: string): Promise<string> {
     try {
-      const response = await openai.chat.completions.create({
+      const client = this.apiKey 
+        ? new OpenAI({ apiKey: this.apiKey })
+        : openai;
+        
+      const response = await client.chat.completions.create({
         model: this.model,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: this.maxTokens,

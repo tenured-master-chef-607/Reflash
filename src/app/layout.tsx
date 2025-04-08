@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { useState, useEffect } from "react";
 import "./globals.css";
+import SupabaseCredentialsCheck from "@/components/SupabaseCredentialsCheck";
+import SupabaseEnvironmentSync from "@/components/SupabaseEnvironmentSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,6 +66,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100`}
       >
+        <SupabaseCredentialsCheck />
+        <SupabaseEnvironmentSync />
         {children}
       </body>
     </html>

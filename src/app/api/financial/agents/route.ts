@@ -4,9 +4,43 @@ import { processBalanceSheet, findNearestBalanceSheet } from '@/utils/dataProces
 import { fetchFinancialData } from '@/utils/fetchFinancialData';
 import { openai } from '@/utils/openai';
 import { supabase } from '@/utils/supabase';
+import { getEnv } from '@/utils/environmentOverrides';
+import { OpenAI } from 'openai';
+
+// Function to get OpenAI API key from cookies or environment variables
+function getOpenAIApiKey(request: NextRequest): string | null {
+  // First try to get from cookies
+  const openaiApiKeyCookie = request.cookies.get('openai-api-key')?.value;
+  if (openaiApiKeyCookie) {
+    return decodeURIComponent(openaiApiKeyCookie);
+  }
+  
+  // Then try from environment or overrides
+  try {
+    const apiKey = getEnv('OPENAI_API_KEY');
+    if (apiKey) {
+      return apiKey;
+    }
+  } catch (error) {
+    console.warn('Failed to get OpenAI API key from environment:', error);
+  }
+  
+  // Finally fall back to process.env
+  return process.env.OPENAI_API_KEY || null;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Check for the OpenAI API key
+    const openaiApiKey = getOpenAIApiKey(request);
+    if (!openaiApiKey) {
+      console.warn('OpenAI API key missing in request:', request.url);
+      return NextResponse.json({
+        success: false,
+        error: 'Missing OpenAI API key. Please set it in the Settings page.'
+      }, { status: 401 });
+    }
+    
     // Get the request body
     const body = await request.json();
     const { 
@@ -46,7 +80,7 @@ export async function POST(request: NextRequest) {
     
     // Handle direct prompt for chat integration
     if (prompt && agentType === 'comprehensive') {
-      return await handleChatPrompt(prompt, body);
+      return await handleChatPrompt(prompt, body, request);
     }
     
     // Use the provided balance sheet directly if it exists
@@ -117,8 +151,8 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Create the agent factory
-    const agentFactory = new AgentFactory();
+    // Create the agent factory with the API key
+    const agentFactory = new AgentFactory(openaiApiKey);
     
     // Handle different agent types
     if (agentType === 'financial' || agentType === 'comprehensive') {
@@ -341,10 +375,20 @@ function generateFallbackBalanceSheet() {
 /**
  * Handle direct text prompts for the chatbot
  */
-async function handleChatPrompt(prompt: string, body: any) {
+async function handleChatPrompt(prompt: string, body: any, request: NextRequest) {
   try {
     const { targetDate, balanceSheet } = body;
     const botName = "Ricky"; // Add bot name constant
+    
+    // Check for the OpenAI API key
+    const openaiApiKey = getOpenAIApiKey(request);
+    if (!openaiApiKey) {
+      console.warn('OpenAI API key missing in chat prompt request:', request.url);
+      return NextResponse.json({
+        success: false,
+        error: 'Missing OpenAI API key. Please set it in the Settings page.'
+      }, { status: 401 });
+    }
     
     // Create a more context-rich prompt with financial data but request a conversational response
     let enrichedPrompt = prompt;
@@ -381,7 +425,12 @@ Don't provide a full financial analysis unless specifically asked. Keep your res
     }
     
     // Call OpenAI with the enriched prompt
-    const response = await openai.chat.completions.create({
+    // Use the OpenAI API key we already checked above
+    const client = new OpenAI({
+      apiKey: openaiApiKey
+    });
+    
+    const response = await client.chat.completions.create({
       model: 'gpt-4-turbo',
       messages: [{ role: 'user', content: enrichedPrompt }],
       max_tokens: 500,
@@ -406,6 +455,15 @@ Don't provide a full financial analysis unless specifically asked. Keep your res
     });
   } catch (error) {
     console.error('Error handling chat prompt:', error);
+    
+    // Check if error is due to missing API key
+    if (error instanceof Error && error.message.includes('API key')) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing OpenAI API key. Please set it in the Settings page.',
+      }, { status: 401 });
+    }
+    
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error handling chat prompt',

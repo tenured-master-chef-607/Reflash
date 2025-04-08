@@ -48,6 +48,15 @@ const ChatBox = ({ reportDate, financialData }: ChatBoxProps = {}) => {
   // Load saved messages from localStorage on component mount
   useEffect(() => {
     const savedMessages = localStorage.getItem('reflashChatMessages');
+    
+    // If the report date has changed or is a new session, clear old messages
+    if (reportDate && reportDate !== lastReportDate) {
+      setMessages([]);
+      localStorage.removeItem('reflashChatMessages');
+      console.log('Cleared chat messages due to report date change');
+      return;
+    }
+    
     if (savedMessages) {
       try {
         const parsedMessages = JSON.parse(savedMessages);
@@ -56,16 +65,18 @@ const ChatBox = ({ reportDate, financialData }: ChatBoxProps = {}) => {
         }
       } catch (error) {
         console.error('Error loading saved chat messages:', error);
+        // Clear invalid saved messages
+        localStorage.removeItem('reflashChatMessages');
       }
     } else if (reportDate && financialData) {
       // Add welcome message if this is a new chat and we have financial data
       const welcomeMessage: Message = {
-        content: `Hi, I'm ${botName}, your personal financial assistant! I can help you understand the financial data for ${reportDate}. Feel free to ask me anything about the numbers or ratios.`,
+        content: `Hi, I'm ${botName}, your personal financial assistant!. Feel free to ask me anything about the numbers, ratios, or anything else you want to know about the financial data.`,
         sender: 'bot'
       };
       setMessages([welcomeMessage]);
     }
-  }, [reportDate, financialData]);
+  }, [reportDate, financialData, lastReportDate]);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {

@@ -19,11 +19,12 @@ export interface AgentAnalysisResult {
 export class AgentFactory {
   private config: AgentConfig;
 
-  constructor(config?: AgentConfig) {
-    this.config = config || {
+  constructor(apiKey?: string) {
+    this.config = {
       model: 'gpt-4-turbo',
       temperature: 0.7,
-      maxTokens: 1500
+      maxTokens: 1500,
+      apiKey
     };
   }
 

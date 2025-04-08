@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchFinancialData } from '@/utils/fetchFinancialData';
 import { processBalanceSheet } from '@/utils/dataProcessing';
 
@@ -9,11 +9,53 @@ export default function FinancialAgentsPage() {
   const [results, setResults] = useState<any>(null);
   const [agentType, setAgentType] = useState<string>('financial');
   const [error, setError] = useState<string | null>(null);
+  const [missingApiKey, setMissingApiKey] = useState<boolean>(false);
+  const [openaiKey, setOpenaiKey] = useState<string | null>(null);
+  
+  // Check if OpenAI API key is set
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('reflashSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      const hasKey = !!settings.openaiKey;
+      setMissingApiKey(!hasKey);
+      if (hasKey) {
+        setOpenaiKey(settings.openaiKey);
+      }
+    } else {
+      setMissingApiKey(true);
+    }
+    
+    // Listen for settings changes
+    const handleSettingsChange = () => {
+      const savedSettings = localStorage.getItem('reflashSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        const hasKey = !!settings.openaiKey;
+        setMissingApiKey(!hasKey);
+        if (hasKey) {
+          setOpenaiKey(settings.openaiKey);
+        } else {
+          setOpenaiKey(null);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleSettingsChange);
+    return () => window.removeEventListener('storage', handleSettingsChange);
+  }, []);
   
   const runAnalysis = async (type: string) => {
     setLoading(true);
     setError(null);
     setResults(null);
+    
+    // Check for OpenAI API key before proceeding
+    if (missingApiKey) {
+      setError('Missing OpenAI API key. Please set it in the Settings page.');
+      setLoading(false);
+      return;
+    }
     
     try {
       // Fetch financial data
@@ -94,6 +136,8 @@ export default function FinancialAgentsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Set the OpenAI API key in Authorization header as a fallback
+          ...(openaiKey && { 'Authorization': `Bearer ${openaiKey}` })
         },
         body: JSON.stringify(requestBody),
       });
@@ -115,6 +159,21 @@ export default function FinancialAgentsPage() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Financial Analysis Agents</h1>
+      
+      {missingApiKey && (
+        <div className="mb-8 p-4 bg-yellow-100 text-yellow-800 rounded border border-yellow-300">
+          <h3 className="font-bold mb-2">OpenAI API Key Required</h3>
+          <p>To use AI financial analysis, you need to set up your OpenAI API key.</p>
+          <div className="mt-2">
+            <a 
+              href="/settings" 
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              Set up API Key
+            </a>
+          </div>
+        </div>
+      )}
       
       <div className="mb-8">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">

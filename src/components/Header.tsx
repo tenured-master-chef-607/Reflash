@@ -62,7 +62,7 @@ export default function Header({ activePage }: HeaderProps) {
         <div className="flex items-center">
           <nav className="hidden md:flex space-x-8 mr-6">
             <Link 
-              href="/dashboard/financial/data" 
+              href="/dashboard" 
               className={`${
                 activePage === 'dashboard' 
                   ? 'text-white border-b-2 border-white pb-1 font-semibold' 

@@ -20,6 +20,19 @@ export default function ReportsPage() {
   
   // Load saved report state on initial render
   useEffect(() => {
+    // Check if this is a fresh load of the application
+    const isNewSession = !sessionStorage.getItem('reportSessionStarted');
+    
+    // If this is a new session, clear all previous report data
+    if (isNewSession) {
+      console.log('New session detected, clearing previous report data');
+      localStorage.removeItem('reflashReportState');
+      localStorage.removeItem('reflashChatMessages');
+      localStorage.removeItem('reflashAnalysisData');
+      sessionStorage.setItem('reportSessionStarted', 'true');
+      return;
+    }
+    
     const savedReportState = localStorage.getItem('reflashReportState');
     if (savedReportState) {
       try {
@@ -35,6 +48,8 @@ export default function ReportsPage() {
         }
       } catch (error) {
         console.error('Error loading saved report state:', error);
+        // Clear invalid saved state
+        localStorage.removeItem('reflashReportState');
       }
     }
   }, []);
@@ -201,6 +216,10 @@ export default function ReportsPage() {
     setIsLoading(true);
     setProcessingError(null);
     
+    // Clear previous financial analysis and chat messages when generating a new report
+    localStorage.removeItem('reflashAnalysisData');
+    localStorage.removeItem('reflashChatMessages');
+    
     try {
       // Fetch financial data for the report
       const financialDataResponse = await fetch('/api/financial/data');
@@ -268,8 +287,13 @@ export default function ReportsPage() {
     setReportGenerated(false);
     setFinancialData(null);
     setProcessingError(null);
+    
+    // Clear all saved reports data from localStorage
     localStorage.removeItem('reflashReportState');
-    localStorage.removeItem('reflashChatMessages'); // Also clear the chat history
+    localStorage.removeItem('reflashChatMessages');
+    localStorage.removeItem('reflashAnalysisData');
+    
+    console.log('Cleared all report data from localStorage');
   };
 
   // Format date for display (YYYY-MM-DD to Month DD, YYYY)

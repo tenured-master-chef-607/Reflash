@@ -7,6 +7,9 @@
 // Store overrides in memory
 let environmentOverrides: Record<string, string> = {};
 
+// Keep track of which environment variable warnings we've already shown
+const warnedEnvVariables = new Set<string>();
+
 // Initialize from localStorage if available
 if (typeof window !== 'undefined') {
   try {
@@ -45,14 +48,17 @@ export function getEnv(key: string): string {
   // Then fall back to Next.js environment variables
   const envValue = process.env[key] || '';
   
-  // Add debugging for missing critical variables
+  // Add debugging for missing critical variables (but only once per variable)
   if (!envValue && (
     key === 'SUPABASE_URL' || 
     key === 'SUPABASE_KEY' || 
     key === 'NEXT_PUBLIC_SUPABASE_URL' || 
     key === 'NEXT_PUBLIC_SUPABASE_KEY'
   )) {
-    console.warn(`Missing critical environment variable: ${key}`);
+    if (!warnedEnvVariables.has(key)) {
+      console.warn(`Missing critical environment variable: ${key}`);
+      warnedEnvVariables.add(key);
+    }
   }
   
   return envValue;
@@ -68,6 +74,32 @@ export function setEnv(key: string, value: string): void {
 }
 
 /**
+ * Check if essential Supabase credentials exist
+ * @returns Boolean indicating if Supabase credentials are available
+ */
+export function hasSupabaseCredentials(): boolean {
+  // Check if we have Supabase URL and key in either environment or overrides
+  const hasUrl = !!(getEnv('SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL'));
+  const hasKey = !!(getEnv('SUPABASE_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_KEY'));
+  
+  return hasUrl && hasKey;
+}
+
+// Set a cookie for server-side access to environment variables
+function setCookie(name: string, value: string, days: number = 7) {
+  if (typeof window === 'undefined') return;
+  
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const sameSite = '; SameSite=Lax'; // Use Lax to allow page redirections to include cookie
+  
+  // Set cookies with specified expiration
+  const expires = new Date();
+  expires.setDate(expires.getDate() + days);
+  
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires.toUTCString()}${secure}${sameSite}`;
+}
+
+/**
  * Update environment variable overrides from settings
  * @param settings The settings object from localStorage
  */
@@ -78,16 +110,36 @@ export function updateEnvFromSettings(settings: any): void {
   if (settings.supabaseUrl) {
     environmentOverrides['NEXT_PUBLIC_SUPABASE_URL'] = settings.supabaseUrl;
     environmentOverrides['SUPABASE_URL'] = settings.supabaseUrl;
+    setCookie('supabase-url', settings.supabaseUrl);
   }
   
   if (settings.supabaseKey) {
     environmentOverrides['NEXT_PUBLIC_SUPABASE_KEY'] = settings.supabaseKey;
     environmentOverrides['SUPABASE_KEY'] = settings.supabaseKey;
+    setCookie('supabase-key', settings.supabaseKey);
   }
   
-  // Add other environment variables as needed
+  // Add OpenAI API key with the same pattern as Supabase
   if (settings.openaiKey) {
     environmentOverrides['OPENAI_API_KEY'] = settings.openaiKey;
+    setCookie('openai-api-key', settings.openaiKey);
+  }
+  
+  // Add other environment variables as needed for other data sources
+  if (settings.quickbooksKey) {
+    environmentOverrides['QUICKBOOKS_API_KEY'] = settings.quickbooksKey;
+  }
+  
+  if (settings.xeroKey) {
+    environmentOverrides['XERO_API_KEY'] = settings.xeroKey;
+  }
+  
+  if (settings.sageKey) {
+    environmentOverrides['SAGE_API_KEY'] = settings.sageKey;
+  }
+  
+  if (settings.freshbooksKey) {
+    environmentOverrides['FRESHBOOKS_API_KEY'] = settings.freshbooksKey;
   }
   
   // Log the update (for debugging)
@@ -95,12 +147,25 @@ export function updateEnvFromSettings(settings: any): void {
 }
 
 /**
- * Custom event to notify the application that environment variables have changed
+ * Notify the application that environment variables have changed
+ * This will trigger a refresh of data that depends on environment variables
+ * @param options Optional settings for notification behavior
  */
-export function notifyEnvironmentChanged(): void {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('environment-changed'));
+export function notifyEnvironmentChanged(options?: { quiet?: boolean, skipReload?: boolean }) {
+  if (typeof window === 'undefined') return;
+  
+  if (!options?.quiet) {
+    console.log('Environment variables changed');
   }
+  
+  // Create a custom event to notify listeners of environment change
+  const event = new CustomEvent('environment-changed', { 
+    detail: { 
+      timestamp: Date.now(),
+      skipReload: options?.skipReload
+    }
+  });
+  window.dispatchEvent(event);
 }
 
 /**

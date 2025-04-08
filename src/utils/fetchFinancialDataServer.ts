@@ -1,150 +1,73 @@
-import { createSupabaseServerClient, getSupabaseServerSettings } from '@/utils/supabaseServer';
-import { fetchTableData, getAvailableTables } from '@/utils/directFetch';
-
-// Fallback data for when tables don't exist
-const fallbackData = {
-  accounts: [
-    { id: 1, name: 'Cash', type: 'asset', balance: 50000 },
-    { id: 2, name: 'Accounts Receivable', type: 'asset', balance: 25000 },
-    { id: 3, name: 'Revenue', type: 'income', balance: 100000 },
-    { id: 4, name: 'Expenses', type: 'expense', balance: 45000 }
-  ],
-  balanceSheets: [
-    { 
-      id: 1, 
-      date: '2023-04-01', 
-      total_assets: 150000, 
-      total_liabilities: 50000,
-      total_equity: 100000,
-      current_ratio: 2.5
-    },
-    { 
-      id: 2, 
-      date: '2023-03-01', 
-      total_assets: 145000, 
-      total_liabilities: 48000,
-      total_equity: 97000,
-      current_ratio: 2.4
-    }
-  ],
-  transactions: Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    date: new Date(2023, 3, i % 30 + 1).toISOString().split('T')[0],
-    amount: Math.floor(Math.random() * 10000) / 100,
-    description: `Transaction ${i + 1}`,
-    account_id: (i % 4) + 1,
-    type: i % 2 === 0 ? 'credit' : 'debit'
-  }))
-};
+import { createServerSupabaseClient } from './supabaseServer';
+import { getSupabaseServerSettings } from './supabaseServer';
+import { fallbackData } from './fallbackData';
 
 /**
- * Server-side function that fetches financial data from multiple tables
- * @returns Object containing data from various financial tables
+ * Fetches available financial-related tables from Supabase
+ */
+export async function getFinancialTablesServer(): Promise<string[]> {
+  const { url, key } = getSupabaseServerSettings();
+  
+  // If credentials are not available, return empty list
+  if (!url || !key) {
+    console.log('No Supabase credentials available, returning empty tables list');
+    return [];
+  }
+  
+  try {
+    console.log('Fetching financial tables from Supabase...');
+    
+    // Create Supabase client to query tables
+    const supabase = createServerSupabaseClient();
+    
+    // Get all tables ending with "accounts" or starting with "accounting_"
+    const { data, error } = await supabase.rpc('get_table_names');
+    
+    if (error) {
+      console.error('Error fetching tables via RPC:', error);
+      return [];
+    }
+    
+    // Filter tables to include only financial ones
+    if (data) {
+      // Check if data is array of objects with tablename property (Supabase format)
+      const financialTables = data.map((item: any) => {
+        // Handle both formats: string or {tablename: string}
+        const tableName = typeof item === 'string' ? item : item.tablename;
+        return tableName;
+      }).filter((tableName: string) => 
+        tableName && (
+          tableName.endsWith('accounts') || 
+          tableName.startsWith('accounting_') ||
+          tableName.includes('financial') ||
+          tableName.includes('finance_') ||
+          tableName.includes('ledger') ||
+          tableName.includes('transactions') ||
+          tableName.includes('balance')
+        )
+      );
+      
+      console.log(`Found ${financialTables.length} financial tables`);
+      return financialTables;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error in getFinancialTablesServer:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches financial data from Supabase tables
+ * Returns fallback data if credentials are not available
  */
 export async function fetchFinancialDataServer() {
-  try {
-    console.log('Fetching financial data from Supabase (server-side)...');
-    
-    // Get Supabase client with settings from environment variables
-    const supabaseClient = createSupabaseServerClient();
-    
-    // Get settings for direct fetch fallback
-    const settings = getSupabaseServerSettings();
-    
-    // Store all our data here
-    let accountsData;
-    let balanceSheetsData;
-    let transactionsData;
-    let usedFallback = false;
-    
-    // Fetch accounts data
-    try {
-      try {
-        // First try using the Supabase client
-        const { data, error } = await supabaseClient
-          .from('accounting_accounts')
-          .select('*');
-        
-        if (error) {
-          console.error('Error fetching accounts with Supabase client:', error);
-          throw error;
-        }
-        
-        accountsData = data;
-      } catch (supabaseError) {
-        // Fall back to direct fetch with settings from environment
-        console.log('Trying direct fetch for accounts...');
-        accountsData = await fetchTableData('accounting_accounts', settings.key, settings.url);
-      }
-    } catch (error) {
-      console.log('Using fallback accounts data');
-      accountsData = fallbackData.accounts;
-      usedFallback = true;
-    }
-    
-    // Fetch balance sheets data
-    try {
-      try {
-        // First try using the Supabase client
-        const { data, error } = await supabaseClient
-          .from('accounting_balance_sheets')
-          .select('*');
-        
-        if (error) {
-          console.error('Error fetching balance sheets with Supabase client:', error);
-          throw error;
-        }
-        
-        balanceSheetsData = data;
-      } catch (supabaseError) {
-        // Fall back to direct fetch with settings from environment
-        console.log('Trying direct fetch for balance sheets...');
-        balanceSheetsData = await fetchTableData('accounting_balance_sheets', settings.key, settings.url);
-      }
-    } catch (error) {
-      console.log('Using fallback balance sheets data');
-      balanceSheetsData = fallbackData.balanceSheets;
-      usedFallback = true;
-    }
-
-    // Fetch transactions data
-    try {
-      try {
-        // First try using the Supabase client
-        const { data, error } = await supabaseClient
-          .from('accounting_transactions')
-          .select('*')
-          .limit(100); // Limit to avoid large data sets
-        
-        if (error) {
-          console.error('Error fetching transactions with Supabase client:', error);
-          throw error;
-        }
-        
-        transactionsData = data;
-      } catch (supabaseError) {
-        // Fall back to direct fetch with settings from environment
-        console.log('Trying direct fetch for transactions...');
-        transactionsData = await fetchTableData('accounting_transactions', settings.key, settings.url);
-      }
-    } catch (error) {
-      console.log('Using fallback transactions data');
-      transactionsData = fallbackData.transactions;
-      usedFallback = true;
-    }
-    
-    // Return compiled financial data
-    return {
-      accounts: accountsData,
-      balanceSheets: balanceSheetsData,
-      transactions: transactionsData,
-      usedFallback
-    };
-    
-  } catch (error) {
-    console.error('Error in fetchFinancialDataServer:', error);
-    // Return fallback data instead of throwing
-    console.log('Using all fallback data due to error');
+  const { url, key } = getSupabaseServerSettings();
+  
+  // If credentials are not available, return fallback data
+  if (!url || !key) {
+    console.log('No Supabase credentials available, returning fallback data');
     return {
       accounts: fallbackData.accounts,
       balanceSheets: fallbackData.balanceSheets,
@@ -152,38 +75,94 @@ export async function fetchFinancialDataServer() {
       usedFallback: true
     };
   }
-}
-
-/**
- * Server-side function that gets a list of all available financial tables
- * @returns Array of table names
- */
-export async function getFinancialTablesServer() {
+  
   try {
-    // Get Supabase client with settings from environment variables
-    const supabaseClient = createSupabaseServerClient();
+    console.log('Fetching financial data from server...');
     
-    // First try using RPC if the function exists in the database
-    try {
-      const { data, error } = await supabaseClient.rpc('get_table_names');
+    // Create Supabase client
+    const supabase = createServerSupabaseClient();
+    
+    // Get accounts data
+    const { data: accounts, error: accountsError } = await supabase
+      .from('accounting_accounts')
+      .select('*');
       
-      if (error) {
-        console.error('Error fetching table names via RPC:', error);
-        throw error;
-      }
-      
-      // Filter only tables related to finance/accounting
-      const financialTables = data
-        .map((row: { tablename: string }) => row.tablename)
-        .filter((name: string) => name.startsWith('accounting_') || name.startsWith('financial_'));
-      
-      return financialTables;
-    } catch (rpcError) {
-      console.log('RPC method not available, using direct method...');
-      return await getAvailableTables();
+    if (accountsError) {
+      console.error('Error fetching accounts:', accountsError);
+      return {
+        accounts: fallbackData.accounts,
+        balanceSheets: fallbackData.balanceSheets,
+        transactions: fallbackData.transactions,
+        usedFallback: true,
+        error: `Error fetching accounts: ${accountsError.message}`
+      };
     }
+    
+    // Get balance sheets data
+    const { data: balanceSheets, error: balanceSheetsError } = await supabase
+      .from('accounting_balance_sheets')
+      .select('*')
+      .order('date', { ascending: false });
+      
+    if (balanceSheetsError) {
+      console.error('Error fetching balance sheets:', balanceSheetsError);
+      return {
+        accounts: accounts || fallbackData.accounts,
+        balanceSheets: fallbackData.balanceSheets,
+        transactions: fallbackData.transactions,
+        usedFallback: true,
+        error: `Error fetching balance sheets: ${balanceSheetsError.message}`
+      };
+    }
+    
+    // Get transactions data
+    const { data: transactions, error: transactionsError } = await supabase
+      .from('accounting_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+      
+    if (transactionsError) {
+      console.error('Error fetching transactions:', transactionsError);
+      return {
+        accounts: accounts || fallbackData.accounts,
+        balanceSheets: balanceSheets || fallbackData.balanceSheets,
+        transactions: fallbackData.transactions,
+        usedFallback: true,
+        error: `Error fetching transactions: ${transactionsError.message}`
+      };
+    }
+    
+    // If any data is missing, use fallback
+    if (!accounts || !balanceSheets || !transactions) {
+      const useFallbackAccounts = !accounts;
+      const useFallbackBalanceSheets = !balanceSheets;
+      const useFallbackTransactions = !transactions;
+      
+      return {
+        accounts: accounts || fallbackData.accounts,
+        balanceSheets: balanceSheets || fallbackData.balanceSheets,
+        transactions: transactions || fallbackData.transactions,
+        usedFallback: useFallbackAccounts || useFallbackBalanceSheets || useFallbackTransactions,
+        error: 'Some data was missing in the database'
+      };
+    }
+    
+    // Return the complete data
+    return {
+      accounts,
+      balanceSheets,
+      transactions,
+      usedFallback: false
+    };
   } catch (error) {
-    console.error('Error in getFinancialTablesServer:', error);
-    return getAvailableTables();
+    console.error('Error in fetchFinancialDataServer:', error);
+    return {
+      accounts: fallbackData.accounts,
+      balanceSheets: fallbackData.balanceSheets,
+      transactions: fallbackData.transactions,
+      usedFallback: true,
+      error: `Server error: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
 } 

@@ -253,7 +253,14 @@ export function getTransactionsForDateRange(transactions: any[], startDate: stri
   const end = new Date(endDate).getTime();
   
   return transactions.filter(transaction => {
-    const transactionDate = new Date(transaction.date).getTime();
+    // Try to get date from either date field or created_at as fallback
+    const dateValue = transaction.date || transaction.created_at;
+    if (!dateValue) {
+      console.warn("Transaction missing both date and created_at fields", transaction);
+      return false;
+    }
+    
+    const transactionDate = new Date(dateValue).getTime();
     return transactionDate >= start && transactionDate <= end;
   });
 }

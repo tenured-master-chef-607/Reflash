@@ -1,12 +1,39 @@
-import { NextResponse } from 'next/server';
-import { fetchFinancialDataServer } from '@/utils/fetchFinancialDataServer';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseServerSettings } from '@/utils/supabaseServer';
 
 // Fallback dates for testing when connection fails
 const fallbackDates = ['2023-12-31', '2023-09-30', '2023-06-30', '2023-03-31'];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('Fetching available financial dates...');
+    
+    // Check for credentials in headers first (these will be the most up-to-date)
+    const headerUrl = request.headers.get('X-Supabase-URL');
+    const headerKey = request.headers.get('X-Supabase-Key');
+    
+    // Get credentials from environment/cookies as fallback
+    const { url: envUrl, key: envKey } = getSupabaseServerSettings();
+    
+    // Use header credentials if provided, otherwise use environment/cookies
+    const url = headerUrl || envUrl;
+    const key = headerKey || envKey;
+    
+    // If no credentials, immediately return fallback dates
+    if (!url || !key) {
+      console.log('No Supabase credentials available, returning fallback dates');
+      return NextResponse.json({
+        success: true,
+        dates: fallbackDates,
+        debug: {
+          usedFallback: true,
+          reason: 'no_credentials'
+        }
+      });
+    }
+    
+    // Only import and use fetchFinancialDataServer when credentials exist
+    const { fetchFinancialDataServer } = await import('@/utils/fetchFinancialDataServer');
     
     // Fetch the financial data to get balance sheet dates
     const financialData = await fetchFinancialDataServer();

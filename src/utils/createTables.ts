@@ -278,4 +278,95 @@ async function insertSampleData(url: string, key: string, tableName: string, dat
   } catch (error) {
     console.error(`Error inserting sample data into ${tableName}:`, error);
   }
+}
+
+/**
+ * Create a test table to verify database connectivity
+ */
+export async function createTestTable(url: string, key: string) {
+  try {
+    console.log('Creating test table to verify database connectivity...');
+    
+    if (!url || !key) {
+      return {
+        success: false,
+        message: 'Missing Supabase URL or API key'
+      };
+    }
+    
+    // Make sure URL is formatted correctly
+    url = url.replace(/\/$/, '');
+    
+    // Create a simple test table
+    const result = await createTable(
+      url, 
+      key, 
+      'test_connectivity',
+      `
+        id serial primary key,
+        test_value text not null,
+        created_at timestamp with time zone default now()
+      `
+    );
+    
+    if (result.success) {
+      // Insert a test row to verify write permissions
+      try {
+        const insertResponse = await fetch(`${url}/rest/v1/test_connectivity`, {
+          method: 'POST',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            test_value: 'Connection test at ' + new Date().toISOString()
+          })
+        });
+        
+        if (insertResponse.ok) {
+          return {
+            success: true,
+            message: 'Successfully created test table and inserted data. Database connection is working properly.',
+            details: {
+              table: 'test_connectivity',
+              canCreate: true,
+              canInsert: true
+            }
+          };
+        } else {
+          return {
+            success: true,
+            message: 'Created test table but could not insert data. Check table permissions.',
+            details: {
+              table: 'test_connectivity',
+              canCreate: true,
+              canInsert: false,
+              insertError: await insertResponse.text()
+            }
+          };
+        }
+      } catch (insertError) {
+        return {
+          success: true,
+          message: 'Created test table but error when inserting: ' + String(insertError),
+          details: {
+            table: 'test_connectivity',
+            canCreate: true,
+            canInsert: false,
+            error: String(insertError)
+          }
+        };
+      }
+    } else {
+      return result;
+    }
+  } catch (error) {
+    console.error('Error creating test table:', error);
+    return {
+      success: false,
+      message: 'Error creating test table: ' + String(error)
+    };
+  }
 } 

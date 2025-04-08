@@ -4,31 +4,45 @@ import { formatCurrency, formatRatio } from './dataProcessing';
  * Generate data for financial charts based on processed balance sheets
  */
 export function generateChartData(processedBalanceSheets: any[], interval: string = 'allDates') {
-  if (!processedBalanceSheets || processedBalanceSheets.length === 0) {
-    return null;
+  // Handle missing or empty data with fallback
+  if (!processedBalanceSheets || !Array.isArray(processedBalanceSheets) || processedBalanceSheets.length === 0) {
+    console.warn('No balance sheet data available for chart generation, using fallback');
+    return createFallbackChartData();
   }
 
   // Filter data based on the selected interval
   const filteredData = filterDataByInterval(processedBalanceSheets, interval);
   
+  // Handle case where filtering results in no data
+  if (filteredData.length === 0) {
+    console.warn('No data available for selected interval, using fallback');
+    return createFallbackChartData();
+  }
+  
   const sortedData = [...filteredData].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  // Extract data for charts
-  const dates = sortedData.map(item => formatDate(item.date));
-  const totalAssets = sortedData.map(item => item.total_asset);
-  const totalLiabilities = sortedData.map(item => item.total_liability);
-  const totalEquities = sortedData.map(item => item.total_equity);
-  const netIncomes = sortedData.map(item => item.net_income);
+  // Extract data for charts - with safer property access
+  const dates = sortedData.map(item => formatDate(item.date || new Date().toISOString()));
+  const totalAssets = sortedData.map(item => item.total_asset || 0);
+  const totalLiabilities = sortedData.map(item => item.total_liability || 0);
+  const totalEquities = sortedData.map(item => item.total_equity || 0);
+  const netIncomes = sortedData.map(item => item.net_income || 0);
 
-  // Extract ratio data
-  const currentRatios = sortedData.map(item => item.ratios.current_ratio);
-  const debtToEquityRatios = sortedData.map(item => item.ratios.debt_to_equity_ratio);
-  const returnOnEquities = sortedData.map(item => item.ratios.return_on_equity);
-  const equityMultipliers = sortedData.map(item => item.ratios.equity_multiplier);
-  const debtRatios = sortedData.map(item => item.ratios.debt_ratio);
-  const netProfitMargins = sortedData.map(item => item.ratios.net_profit_margin);
+  // Extract ratio data with default values if missing
+  const getRatio = (item: any, ratioName: string) => {
+    return (item.ratios && typeof item.ratios[ratioName] === 'number') 
+      ? item.ratios[ratioName] 
+      : 0;
+  };
+  
+  const currentRatios = sortedData.map(item => getRatio(item, 'current_ratio'));
+  const debtToEquityRatios = sortedData.map(item => getRatio(item, 'debt_to_equity_ratio'));
+  const returnOnEquities = sortedData.map(item => getRatio(item, 'return_on_equity'));
+  const equityMultipliers = sortedData.map(item => getRatio(item, 'equity_multiplier'));
+  const debtRatios = sortedData.map(item => getRatio(item, 'debt_ratio'));
+  const netProfitMargins = sortedData.map(item => getRatio(item, 'net_profit_margin'));
 
   // Major financials chart data
   const majorFinancialsData = {
@@ -90,6 +104,75 @@ export function generateChartData(processedBalanceSheets: any[], interval: strin
       equityMultiplier: makeRatioData('Equity Multiplier', equityMultipliers, 'rgb(139, 92, 246)'),
       debtRatio: makeRatioData('Debt Ratio', debtRatios, 'rgb(245, 158, 11)'),
       netProfitMargin: makeRatioData('Net Profit Margin', netProfitMargins, 'rgb(6, 182, 212)')
+    }
+  };
+}
+
+/**
+ * Create fallback chart data when no real data is available
+ */
+function createFallbackChartData() {
+  const emptyDates = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  const emptyData = [0, 0, 0, 0, 0, 0];
+  
+  const majorFinancialsData = {
+    labels: emptyDates,
+    datasets: [
+      {
+        label: 'Total Assets',
+        data: emptyData,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        tension: 0.1
+      },
+      {
+        label: 'Total Liabilities',
+        data: emptyData,
+        borderColor: 'rgb(239, 68, 68)',
+        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+        tension: 0.1
+      },
+      {
+        label: 'Total Equity',
+        data: emptyData,
+        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: 'rgba(16, 185, 129, 0.5)',
+        tension: 0.1
+      },
+      {
+        label: 'Net Income',
+        data: emptyData,
+        borderColor: 'rgb(139, 92, 246)',
+        backgroundColor: 'rgba(139, 92, 246, 0.5)',
+        tension: 0.1
+      }
+    ]
+  };
+  
+  // Create empty ratio data
+  const makeEmptyRatioData = (label: string, color: string) => ({
+    labels: emptyDates,
+    datasets: [
+      {
+        label,
+        data: emptyData,
+        borderColor: color,
+        backgroundColor: color.replace(')', ', 0.2)').replace('rgb', 'rgba'),
+        tension: 0.1,
+        fill: true
+      }
+    ]
+  });
+  
+  return {
+    majorFinancials: majorFinancialsData,
+    ratios: {
+      currentRatio: makeEmptyRatioData('Current Ratio', 'rgb(59, 130, 246)'),
+      debtToEquityRatio: makeEmptyRatioData('Debt to Equity Ratio', 'rgb(239, 68, 68)'),
+      returnOnEquity: makeEmptyRatioData('Return on Equity', 'rgb(16, 185, 129)'),
+      equityMultiplier: makeEmptyRatioData('Equity Multiplier', 'rgb(139, 92, 246)'),
+      debtRatio: makeEmptyRatioData('Debt Ratio', 'rgb(245, 158, 11)'),
+      netProfitMargin: makeEmptyRatioData('Net Profit Margin', 'rgb(6, 182, 212)')
     }
   };
 }
@@ -167,8 +250,17 @@ function formatDate(dateString: string): string {
 export function generateMarkdownReport(balanceSheet: any, interval: string = 'quarterToDate'): string {
   if (!balanceSheet) return '';
   
+  // Ensure balance sheet has required properties
+  const totalAsset = balanceSheet.total_asset || 0;
+  const totalLiability = balanceSheet.total_liability || 0;
+  const totalEquity = balanceSheet.total_equity || 0;
+  const netIncome = balanceSheet.net_income || 0;
+  
+  // Ensure balance sheet has ratios
+  const ratios = balanceSheet.ratios || {};
+  
   // Format date parts
-  const date = new Date(balanceSheet.date);
+  const date = new Date(balanceSheet.date || new Date());
   const month = date.toLocaleDateString('en-US', { month: 'long' });
   const year = date.getFullYear();
   const quarter = Math.floor(date.getMonth() / 3) + 1;
@@ -191,34 +283,45 @@ export function generateMarkdownReport(balanceSheet: any, interval: string = 'qu
     default:
       title = `${month} ${year} Financial Report`;
   }
+
+  // Safely get ratio values
+  const currentRatio = ratios.current_ratio || 0;
+  const debtToEquityRatio = ratios.debt_to_equity_ratio || 0;
+  const returnOnEquity = ratios.return_on_equity || 0;
+  const debtRatio = ratios.debt_ratio || 0;
+  
+  // Safely handle asset breakdown
+  const assetBreakdown = Array.isArray(balanceSheet.asset_breakdown) 
+    ? balanceSheet.asset_breakdown 
+    : [];
   
   return `# ${title}
 
 ## Balance Sheet Summary
 
-**Total Assets:** ${formatCurrency(balanceSheet.total_asset)}
-**Total Liabilities:** ${formatCurrency(balanceSheet.total_liability)}
-**Total Equity:** ${formatCurrency(balanceSheet.total_equity)}
-**Net Income:** ${formatCurrency(balanceSheet.net_income)}
+**Total Assets:** ${formatCurrency(totalAsset)}
+**Total Liabilities:** ${formatCurrency(totalLiability)}
+**Total Equity:** ${formatCurrency(totalEquity)}
+**Net Income:** ${formatCurrency(netIncome)}
 
 ## Financial Ratios
 
 | Ratio | Value | Interpretation |
 |-------|-------|----------------|
-| Current Ratio | ${formatRatio(balanceSheet.ratios.current_ratio)} | ${interpretRatio('current_ratio', balanceSheet.ratios.current_ratio)} |
-| Debt to Equity | ${formatRatio(balanceSheet.ratios.debt_to_equity_ratio)} | ${interpretRatio('debt_to_equity_ratio', balanceSheet.ratios.debt_to_equity_ratio)} |
-| Return on Equity | ${formatRatio(balanceSheet.ratios.return_on_equity)} | ${interpretRatio('return_on_equity', balanceSheet.ratios.return_on_equity)} |
-| Debt Ratio | ${formatRatio(balanceSheet.ratios.debt_ratio)} | ${interpretRatio('debt_ratio', balanceSheet.ratios.debt_ratio)} |
+| Current Ratio | ${formatRatio(currentRatio)} | ${interpretRatio('current_ratio', currentRatio)} |
+| Debt to Equity | ${formatRatio(debtToEquityRatio)} | ${interpretRatio('debt_to_equity_ratio', debtToEquityRatio)} |
+| Return on Equity | ${formatRatio(returnOnEquity)} | ${interpretRatio('return_on_equity', returnOnEquity)} |
+| Debt Ratio | ${formatRatio(debtRatio)} | ${interpretRatio('debt_ratio', debtRatio)} |
 
 ## Asset Breakdown
 
-${balanceSheet.asset_breakdown.map((asset: any) => `- **${asset.name}**: ${formatCurrency(asset.value)}`).join('\n')}
+${assetBreakdown.map((asset: any) => `- **${asset.name || 'Asset'}**: ${formatCurrency(asset.value || 0)}`).join('\n')}
 
 ## Summary
 
-This report provides a ${getIntervalDescription(interval)} snapshot of the company's financial position. The company has total assets of ${formatCurrency(balanceSheet.total_asset)}, with liabilities of ${formatCurrency(balanceSheet.total_liability)} and equity of ${formatCurrency(balanceSheet.total_equity)}.
+This report provides a ${getIntervalDescription(interval)} snapshot of the company's financial position. The company has total assets of ${formatCurrency(totalAsset)}, with liabilities of ${formatCurrency(totalLiability)} and equity of ${formatCurrency(totalEquity)}.
 
-${getSummaryBasedOnRatios(balanceSheet.ratios)}
+${getSummaryBasedOnRatios(ratios)}
 
 For a more detailed analysis, please consult the AI-generated insights.
 `;
@@ -290,32 +393,40 @@ function interpretRatio(ratioName: string, value: number): string {
  * Generate a summary based on financial ratios
  */
 function getSummaryBasedOnRatios(ratios: any): string {
+  // Ensure ratios object exists
+  ratios = ratios || {};
+  
   const concerns = [];
   const strengths = [];
   
+  // Get ratios with defaults for missing values
+  const currentRatio = typeof ratios.current_ratio === 'number' ? ratios.current_ratio : 0;
+  const debtToEquityRatio = typeof ratios.debt_to_equity_ratio === 'number' ? ratios.debt_to_equity_ratio : 0;
+  const returnOnEquity = typeof ratios.return_on_equity === 'number' ? ratios.return_on_equity : 0;
+  
   // Check for concerns
-  if (ratios.current_ratio < 1.2) {
+  if (currentRatio < 1.2) {
     concerns.push('liquidity position may require attention');
   }
   
-  if (ratios.debt_to_equity_ratio > 1.5) {
+  if (debtToEquityRatio > 1.5) {
     concerns.push('high leverage level could pose financial risk');
   }
   
-  if (ratios.return_on_equity < 0.08) {
+  if (returnOnEquity < 0.08) {
     concerns.push('return on equity is below optimal levels');
   }
   
   // Check for strengths
-  if (ratios.current_ratio > 2) {
+  if (currentRatio > 2) {
     strengths.push('strong liquidity position');
   }
   
-  if (ratios.return_on_equity > 0.15) {
+  if (returnOnEquity > 0.15) {
     strengths.push('excellent return on shareholder investment');
   }
   
-  if (ratios.debt_to_equity_ratio < 0.5) {
+  if (debtToEquityRatio < 0.5) {
     strengths.push('conservative debt management');
   }
   

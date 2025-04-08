@@ -24,6 +24,17 @@ export default function LLMAnalysis({ targetDate, interval = 'quarterToDate', ba
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [dataHash, setDataHash] = useState<string>('');
   const [previousRefresh, setPreviousRefresh] = useState<boolean>(false);
+  const [missingApiKey, setMissingApiKey] = useState<boolean>(false);
+  
+  // Check if OpenAI API key is set
+  const checkApiKey = (): boolean => {
+    const savedSettings = localStorage.getItem('reflashSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      return !!settings.openaiKey;
+    }
+    return false;
+  };
   
   // Load theme from localStorage
   useEffect(() => {
@@ -77,39 +88,24 @@ export default function LLMAnalysis({ targetDate, interval = 'quarterToDate', ba
     
     console.log('Target date changed to:', targetDate);
     
-    // Check if we have a valid saved analysis
-    const savedAnalysis = localStorage.getItem('reflashAnalysisData');
-    if (savedAnalysis) {
-      try {
-        const analysis: StoredAnalysis = JSON.parse(savedAnalysis);
-        
-        // Check if the saved analysis matches the current date and interval
-        if (analysis.date === targetDate && analysis.interval === interval) {
-          // Use saved analysis without automatically regenerating it
-          const ageInHours = (Date.now() - analysis.timestamp) / (1000 * 60 * 60);
-          console.log('Found saved analysis from:', new Date(analysis.timestamp).toLocaleString(), 
-                      `(${ageInHours.toFixed(1)} hours old)`);
-          setAnalysisData(analysis.data);
-        } else {
-          // If no matching analysis, just clear the current one
-          console.log('No matching saved analysis for', targetDate);
-          setAnalysisData(null);
-        }
-      } catch (error) {
-        console.error('Error loading saved analysis:', error);
-        setAnalysisData(null);
-      }
-    } else {
-      // If no saved analysis at all, clear the current one
-      setAnalysisData(null);
-    }
+    // Don't automatically load saved analysis on date change
+    // We'll wait for the "Update Report" button to be clicked instead
+    setAnalysisData(null);
   }, [targetDate, interval]);
   
   // Generate new analysis ONLY when shouldRefresh changes from false to true
   useEffect(() => {
     if (shouldRefresh && !previousRefresh && targetDate && balanceSheetData) {
       console.log('Refresh triggered - generating new analysis');
-      generateAnalysis();
+      
+      // Check for API key before generating analysis
+      if (!checkApiKey()) {
+        setMissingApiKey(true);
+        setError('Missing OpenAI API key. Please set it in the Settings page.');
+      } else {
+        setMissingApiKey(false);
+        generateAnalysis();
+      }
     }
     
     // Update previous refresh state
@@ -323,6 +319,21 @@ Based on current trends and market conditions, we project a 5.3% revenue growth 
       }`}>
         <p className="font-medium">Error generating AI analysis</p>
         <p>{error}</p>
+        {missingApiKey && (
+          <div className="mt-3">
+            <p className="font-medium">Please set up your OpenAI API key:</p>
+            <ol className="list-decimal list-inside mt-2 ml-2">
+              <li>Go to the <a 
+                href="/settings" 
+                className={`underline font-medium ${theme === 'dark' ? 'text-red-200' : 'text-red-600'}`}
+              >
+                Settings Page
+              </a></li>
+              <li>Navigate to "Data Sources API Keys" section</li>
+              <li>Enter your OpenAI API key and save settings</li>
+            </ol>
+          </div>
+        )}
       </div>
     );
   }

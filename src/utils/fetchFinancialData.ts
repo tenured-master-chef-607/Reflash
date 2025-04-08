@@ -76,9 +76,13 @@ export async function fetchFinancialData() {
         // Fall back to direct fetch with settings from localStorage
         console.log('Trying direct fetch for accounts...');
         accountsData = await fetchTableData('accounting_accounts', settings.key, settings.url);
+        
+        // Check if direct fetch returned null (missing credentials)
+        if (accountsData === null) {
+          console.log('Direct fetch returned null - missing credentials');
+          throw new Error('Missing Supabase credentials');
+        }
       }
-      
-      // Remove data logging to reduce terminal noise
     } catch (error) {
       console.log('Using fallback accounts data');
       accountsData = fallbackData.accounts;
@@ -103,9 +107,13 @@ export async function fetchFinancialData() {
         // Fall back to direct fetch with settings from localStorage
         console.log('Trying direct fetch for balance sheets...');
         balanceSheetsData = await fetchTableData('accounting_balance_sheets', settings.key, settings.url);
+        
+        // Check if direct fetch returned null (missing credentials)
+        if (balanceSheetsData === null) {
+          console.log('Direct fetch returned null - missing credentials');
+          throw new Error('Missing Supabase credentials');
+        }
       }
-      
-      // Remove data logging to reduce terminal noise
     } catch (error) {
       console.log('Using fallback balance sheets data');
       balanceSheetsData = fallbackData.balanceSheets;
@@ -131,9 +139,13 @@ export async function fetchFinancialData() {
         // Fall back to direct fetch with settings from localStorage
         console.log('Trying direct fetch for transactions...');
         transactionsData = await fetchTableData('accounting_transactions', settings.key, settings.url);
+        
+        // Check if direct fetch returned null (missing credentials)
+        if (transactionsData === null) {
+          console.log('Direct fetch returned null - missing credentials');
+          throw new Error('Missing Supabase credentials');
+        }
       }
-      
-      // Remove data logging to reduce terminal noise
     } catch (error) {
       console.log('Using fallback transactions data');
       transactionsData = fallbackData.transactions;
