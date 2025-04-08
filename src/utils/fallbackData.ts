@@ -33,5 +33,12 @@ export const fallbackData = {
     description: `Transaction ${i + 1}`,
     account_id: (i % 4) + 1,
     type: i % 2 === 0 ? 'credit' : 'debit'
+  })),
+  expenses: Array.from({ length: 15 }, (_, i) => ({
+    id: i + 1,
+    date: new Date(2023, 3, i % 30 + 1).toISOString().split('T')[0],
+    amount: Math.floor(Math.random() * 5000) / 100,
+    description: `Expense ${i + 1}`,
+    category: ['Office', 'Salary', 'Marketing', 'Utilities', 'Other'][i % 5]
   }))
 }; 

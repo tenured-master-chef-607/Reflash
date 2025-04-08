@@ -147,6 +147,60 @@ export async function createRequiredTables(url: string, key: string) {
       });
     }
     
+    // Create accounting_expenses table
+    try {
+      const createExpensesResult = await createTable(
+        url,
+        key,
+        'accounting_expenses',
+        `
+          id serial primary key,
+          remote_id text,
+          transaction_date date,
+          created_at timestamp with time zone default now(),
+          modified_at timestamp with time zone default now(),
+          remote_created_at timestamp with time zone,
+          account text,
+          contact text,
+          total_amount numeric not null,
+          sub_total numeric,
+          total_tax_amount numeric,
+          currency text,
+          exchange_rate numeric,
+          inclusive_of_tax boolean,
+          company text,
+          employee text,
+          memo text,
+          remote_was_deleted boolean default false,
+          accounting_period text,
+          tracking_category_ids text,
+          org_id text,
+          source_id text
+        `
+      );
+      results.push(createExpensesResult);
+      
+      // Insert sample data
+      if (createExpensesResult.success) {
+        // Generate 15 sample expenses
+        const sampleExpenses = Array.from({ length: 15 }, (_, i) => ({
+          transaction_date: new Date(2023, 3, i % 30 + 1).toISOString().split('T')[0],
+          total_amount: Math.floor(Math.random() * 5000) / 100,
+          memo: `Expense ${i + 1}`,
+          tracking_category_ids: ['Office', 'Salary', 'Marketing', 'Utilities', 'Other'][i % 5]
+        }));
+        
+        await insertSampleData(url, key, 'accounting_expenses', sampleExpenses);
+      }
+    } catch (error) {
+      console.error('Error creating expenses table:', error);
+      results.push({
+        table: 'accounting_expenses',
+        success: false,
+        message: String(error)
+      });
+    }
+    
     const allSuccessful = results.every(r => r.success);
     
     return {

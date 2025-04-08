@@ -28,7 +28,7 @@ interface FinancialChartsProps {
   data: {
     date: string;
     interval?: string;
-    chartType?: 'revenue' | 'expense' | 'profit';
+    chartType?: 'majorFinancials' | 'currentRatio' | 'debtToEquityRatio' | 'returnOnEquity' | 'equityMultiplier' | 'debtRatio' | 'netProfitMargin' | 'revenue' | 'expense' | 'profit';
   } | null;
 }
 
@@ -70,14 +70,26 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
     // Set the initial active chart based on chartType prop if provided
     if (data?.chartType) {
       switch (data.chartType) {
-        case 'revenue':
-          setActiveChart('revenue');
+        case 'majorFinancials':
+          setActiveChart('majorFinancials');
           break;
-        case 'expense':
-          setActiveChart('expense');
+        case 'currentRatio':
+          setActiveChart('currentRatio');
           break;
-        case 'profit':
-          setActiveChart('profit');
+        case 'debtToEquityRatio':
+          setActiveChart('debtToEquityRatio');
+          break;
+        case 'returnOnEquity':
+          setActiveChart('returnOnEquity');
+          break;
+        case 'equityMultiplier':
+          setActiveChart('equityMultiplier');
+          break;
+        case 'debtRatio':
+          setActiveChart('debtRatio');
+          break;
+        case 'netProfitMargin':
+          setActiveChart('netProfitMargin');
           break;
         default:
           setActiveChart('majorFinancials');
@@ -87,31 +99,158 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
   
   // Define createFallbackChartData function here, before it's used
   function createFallbackChartData() {
+    const emptyDates = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const emptyData = [0, 0, 0, 0, 0, 0];
+    
     return {
       majorFinancials: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        labels: emptyDates,
         datasets: [
           {
-            label: 'Revenue',
-            data: [0, 0, 0, 0, 0, 0],
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.5)',
+            label: 'Total Assets',
+            data: emptyData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.5)',
           },
           {
-            label: 'Expenses',
-            data: [0, 0, 0, 0, 0, 0],
+            label: 'Total Liabilities',
+            data: emptyData,
             borderColor: 'rgb(239, 68, 68)',
             backgroundColor: 'rgba(239, 68, 68, 0.5)',
           },
           {
-            label: 'Profit',
-            data: [0, 0, 0, 0, 0, 0],
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            label: 'Total Equity',
+            data: emptyData,
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.5)',
+          },
+          {
+            label: 'Net Income',
+            data: emptyData,
+            borderColor: 'rgb(139, 92, 246)',
+            backgroundColor: 'rgba(139, 92, 246, 0.5)',
           }
         ]
       },
-      ratios: {}
+      revenue: {
+        labels: emptyDates,
+        datasets: [
+          {
+            label: 'Revenue',
+            data: emptyData,
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            fill: true,
+            tension: 0.1
+          }
+        ]
+      },
+      expense: {
+        labels: emptyDates,
+        datasets: [
+          {
+            label: 'Expenses',
+            data: emptyData,
+            borderColor: 'rgb(239, 68, 68)',
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            fill: true,
+            tension: 0.1
+          }
+        ]
+      },
+      profit: {
+        labels: emptyDates,
+        datasets: [
+          {
+            label: 'Profit',
+            data: emptyData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            fill: true,
+            tension: 0.1
+          }
+        ]
+      },
+      ratios: {
+        currentRatio: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Current Ratio',
+              data: emptyData,
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        },
+        debtToEquityRatio: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Debt to Equity Ratio',
+              data: emptyData,
+              borderColor: 'rgb(239, 68, 68)',
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        },
+        returnOnEquity: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Return on Equity',
+              data: emptyData,
+              borderColor: 'rgb(16, 185, 129)',
+              backgroundColor: 'rgba(16, 185, 129, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        },
+        equityMultiplier: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Equity Multiplier',
+              data: emptyData,
+              borderColor: 'rgb(139, 92, 246)',
+              backgroundColor: 'rgba(139, 92, 246, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        },
+        debtRatio: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Debt Ratio',
+              data: emptyData,
+              borderColor: 'rgb(245, 158, 11)',
+              backgroundColor: 'rgba(245, 158, 11, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        },
+        netProfitMargin: {
+          labels: emptyDates,
+          datasets: [
+            {
+              label: 'Net Profit Margin',
+              data: emptyData,
+              borderColor: 'rgb(6, 182, 212)',
+              backgroundColor: 'rgba(6, 182, 212, 0.2)',
+              tension: 0.1,
+              fill: true
+            }
+          ]
+        }
+      }
     };
   }
   
@@ -134,37 +273,9 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
           Major Financials
         </button>
         <button
-          onClick={() => setActiveChart('revenue')}
+          onClick={() => setActiveChart('currentRatio')}
           className={`px-3 py-1.5 text-sm rounded-md ${
-            activeChart === 'revenue'
-              ? theme === 'dark' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-green-600 text-white'
-              : theme === 'dark'
-                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          Revenue
-        </button>
-        <button
-          onClick={() => setActiveChart('expense')}
-          className={`px-3 py-1.5 text-sm rounded-md ${
-            activeChart === 'expense'
-              ? theme === 'dark' 
-                ? 'bg-red-600 text-white' 
-                : 'bg-red-600 text-white'
-              : theme === 'dark'
-                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          }`}
-        >
-          Expenses
-        </button>
-        <button
-          onClick={() => setActiveChart('profit')}
-          className={`px-3 py-1.5 text-sm rounded-md ${
-            activeChart === 'profit'
+            activeChart === 'currentRatio'
               ? theme === 'dark' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-600 text-white'
@@ -173,7 +284,77 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
                 : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
           }`}
         >
-          Profit
+          Current Ratio
+        </button>
+        <button
+          onClick={() => setActiveChart('debtToEquityRatio')}
+          className={`px-3 py-1.5 text-sm rounded-md ${
+            activeChart === 'debtToEquityRatio'
+              ? theme === 'dark' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-red-600 text-white'
+              : theme === 'dark'
+                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+        >
+          Debt to Equity
+        </button>
+        <button
+          onClick={() => setActiveChart('returnOnEquity')}
+          className={`px-3 py-1.5 text-sm rounded-md ${
+            activeChart === 'returnOnEquity'
+              ? theme === 'dark' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-green-600 text-white'
+              : theme === 'dark'
+                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+        >
+          Return on Equity
+        </button>
+        <button
+          onClick={() => setActiveChart('equityMultiplier')}
+          className={`px-3 py-1.5 text-sm rounded-md ${
+            activeChart === 'equityMultiplier'
+              ? theme === 'dark' 
+                ? 'bg-purple-600 text-white' 
+                : 'bg-purple-600 text-white'
+              : theme === 'dark'
+                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+        >
+          Equity Multiplier
+        </button>
+        <button
+          onClick={() => setActiveChart('debtRatio')}
+          className={`px-3 py-1.5 text-sm rounded-md ${
+            activeChart === 'debtRatio'
+              ? theme === 'dark' 
+                ? 'bg-amber-600 text-white' 
+                : 'bg-amber-600 text-white'
+              : theme === 'dark'
+                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+        >
+          Debt Ratio
+        </button>
+        <button
+          onClick={() => setActiveChart('netProfitMargin')}
+          className={`px-3 py-1.5 text-sm rounded-md ${
+            activeChart === 'netProfitMargin'
+              ? theme === 'dark' 
+                ? 'bg-cyan-600 text-white' 
+                : 'bg-cyan-600 text-white'
+              : theme === 'dark'
+                ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          }`}
+        >
+          Net Profit Margin
         </button>
       </div>
     );
@@ -189,34 +370,100 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
     if (data?.chartType && chartData) {
       // Handle missing chart data by providing a default format
       switch (data.chartType) {
+        case 'currentRatio': 
+          return chartData.ratios?.currentRatio || {
+            labels: [],
+            datasets: [{
+              label: 'Current Ratio',
+              data: [],
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            }]
+          };
+        case 'debtToEquityRatio':
+          return chartData.ratios?.debtToEquityRatio || {
+            labels: [],
+            datasets: [{
+              label: 'Debt to Equity Ratio',
+              data: [],
+              borderColor: 'rgb(239, 68, 68)',
+              backgroundColor: 'rgba(239, 68, 68, 0.5)',
+            }]
+          };
+        case 'returnOnEquity':
+          return chartData.ratios?.returnOnEquity || {
+            labels: [],
+            datasets: [{
+              label: 'Return on Equity',
+              data: [],
+              borderColor: 'rgb(16, 185, 129)',
+              backgroundColor: 'rgba(16, 185, 129, 0.5)',
+            }]
+          };
+        case 'equityMultiplier':
+          return chartData.ratios?.equityMultiplier || {
+            labels: [],
+            datasets: [{
+              label: 'Equity Multiplier',
+              data: [],
+              borderColor: 'rgb(139, 92, 246)',
+              backgroundColor: 'rgba(139, 92, 246, 0.5)',
+            }]
+          };
+        case 'debtRatio':
+          return chartData.ratios?.debtRatio || {
+            labels: [],
+            datasets: [{
+              label: 'Debt Ratio',
+              data: [],
+              borderColor: 'rgb(245, 158, 11)',
+              backgroundColor: 'rgba(245, 158, 11, 0.5)',
+            }]
+          };
+        case 'netProfitMargin':
+          return chartData.ratios?.netProfitMargin || {
+            labels: [],
+            datasets: [{
+              label: 'Net Profit Margin',
+              data: [],
+              borderColor: 'rgb(6, 182, 212)',
+              backgroundColor: 'rgba(6, 182, 212, 0.5)',
+            }]
+          };
         case 'revenue': 
-          return {
+          return chartData.revenue || {
             labels: chartData.majorFinancials?.labels || [],
             datasets: [{
               label: 'Revenue',
               data: chartData.majorFinancials?.datasets?.[0]?.data || [],
               borderColor: 'rgb(34, 197, 94)',
-              backgroundColor: 'rgba(34, 197, 94, 0.5)',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              fill: true,
+              tension: 0.1
             }]
           };
         case 'expense':
-          return {
+          return chartData.expense || {
             labels: chartData.majorFinancials?.labels || [],
             datasets: [{
               label: 'Expenses',
               data: chartData.majorFinancials?.datasets?.[1]?.data || [],
               borderColor: 'rgb(239, 68, 68)',
-              backgroundColor: 'rgba(239, 68, 68, 0.5)',
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              fill: true,
+              tension: 0.1
             }]
           };
         case 'profit':
-          return {
+          return chartData.profit || {
             labels: chartData.majorFinancials?.labels || [],
             datasets: [{
               label: 'Profit',
               data: chartData.majorFinancials?.datasets?.[2]?.data || [],
               borderColor: 'rgb(59, 130, 246)',
-              backgroundColor: 'rgba(59, 130, 246, 0.5)',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              fill: true,
+              tension: 0.1
             }]
           };
         default:
@@ -469,9 +716,15 @@ export default function FinancialCharts({ data }: FinancialChartsProps) {
   // Create the chart data
   const selectedChartData = activeChart === 'majorFinancials' 
     ? chartData.majorFinancials 
-    : chartData.ratios && chartData.ratios[activeChart] 
-      ? chartData.ratios[activeChart] 
-      : null;
+    : activeChart === 'revenue'
+      ? chartData.revenue
+      : activeChart === 'expense'
+        ? chartData.expense
+        : activeChart === 'profit'
+          ? chartData.profit
+          : chartData.ratios && chartData.ratios[activeChart] 
+            ? chartData.ratios[activeChart] 
+            : null;
   
   return (
     <div>

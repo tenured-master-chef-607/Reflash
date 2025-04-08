@@ -35,6 +35,12 @@ const fallbackData = {
     description: `Transaction ${i + 1}`,
     account_id: (i % 4) + 1,
     type: i % 2 === 0 ? 'credit' : 'debit'
+  })),
+  expenses: Array.from({ length: 20 }, (_, i) => ({
+    id: i + 1,
+    date: new Date(2023, 3, i % 30 + 1).toISOString().split('T')[0],
+    amount: Math.floor(Math.random() * 10000) / 100,
+    description: `Expense ${i + 1}`,
   }))
 };
 
@@ -56,6 +62,7 @@ export async function fetchFinancialData() {
     let accountsData;
     let balanceSheetsData;
     let transactionsData;
+    let expenseData;
     let usedFallback = false;
     
     // Fetch accounts data
@@ -151,12 +158,67 @@ export async function fetchFinancialData() {
       transactionsData = fallbackData.transactions;
       usedFallback = true;
     }
+
+    // Fetch expense data
+    try {
+      try {
+        // First try using the Supabase client with settings from localStorage
+        console.log('Fetching expenses with Supabase client from table: accounting_expenses');
+        const { data, error } = await supabaseClient
+          .from('accounting_expenses')
+          .select('*');
+        
+        if (error) {
+          console.error('Error fetching expenses with Supabase client:', error);
+          throw error;
+        }
+        
+        // Map the expense data structure to the format we need
+        expenseData = data?.map((exp: any) => ({
+          id: exp.id,
+          date: exp.transaction_date || exp.created_at,
+          amount: exp.total_amount || 0,
+          description: exp.memo || `Expense ${exp.id}`,
+          category: exp.tracking_category_ids || 'Uncategorized'
+        })) || [];
+        
+        console.log(`Successfully retrieved ${expenseData ? expenseData.length : 0} expense records.`);
+        console.log('Mapped expense data example:', expenseData.length > 0 ? expenseData[0] : 'No expense data');
+      } catch (supabaseError) {
+        // Fall back to direct fetch with settings from localStorage
+        console.log('Trying direct fetch for expenses...');
+        const rawExpenseData = await fetchTableData('accounting_expenses', settings.key, settings.url);
+        
+        // Check if direct fetch returned null (missing credentials)
+        if (rawExpenseData === null) {
+          console.log('Direct fetch returned null for expenses - missing credentials');
+          throw new Error('Missing Supabase credentials');
+        }
+        
+        // Map the expense data structure to the format we need
+        expenseData = rawExpenseData?.map((exp: any) => ({
+          id: exp.id,
+          date: exp.transaction_date || exp.created_at,
+          amount: exp.total_amount || 0,
+          description: exp.memo || `Expense ${exp.id}`,
+          category: exp.tracking_category_ids || 'Uncategorized'
+        })) || [];
+        
+        console.log('Successfully retrieved expense data via direct fetch:', expenseData.length > 0 ? expenseData[0] : 'No expense data');
+      }
+    } catch (error) {
+      console.log('Using fallback expense data');
+      expenseData = fallbackData.expenses;
+      usedFallback = true;
+      console.log('Using fallback expense data:', expenseData);
+    }
     
     // Return compiled financial data
     return {
       accounts: accountsData,
       balanceSheets: balanceSheetsData,
       transactions: transactionsData,
+      expenses: expenseData,
       usedFallback
     };
     
@@ -168,6 +230,7 @@ export async function fetchFinancialData() {
       accounts: fallbackData.accounts,
       balanceSheets: fallbackData.balanceSheets,
       transactions: fallbackData.transactions,
+      expenses: fallbackData.expenses,
       usedFallback: true
     };
   }

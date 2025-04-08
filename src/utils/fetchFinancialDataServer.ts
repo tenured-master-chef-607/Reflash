@@ -132,17 +132,44 @@ export async function fetchFinancialDataServer() {
         error: `Error fetching transactions: ${transactionsError.message}`
       };
     }
+
+    // Get expense data
+    const { data: rawExpenses, error: expensesError } = await supabase
+      .from('accounting_expenses')
+      .select('*');
+
+    // Map raw expenses to the format expected by the application
+    const expenses = rawExpenses?.map((exp: any) => ({
+      id: exp.id,
+      date: exp.transaction_date || exp.created_at,
+      amount: exp.total_amount || 0,
+      description: exp.memo || `Expense ${exp.id}`,
+      category: exp.tracking_category_ids || 'Uncategorized'
+    })) || [];
+      
+    if (expensesError) {
+      console.error('Error fetching expenses:', expensesError);
+      return {
+        accounts: accounts || fallbackData.accounts,
+        balanceSheets: balanceSheets || fallbackData.balanceSheets,
+        transactions: transactions || fallbackData.transactions,
+        expenses: expenses || fallbackData.expenses,
+        usedFallback: true,
+        error: `Error fetching expenses: ${expensesError.message}`
+      };
+    }
     
     // If any data is missing, use fallback
     if (!accounts || !balanceSheets || !transactions) {
       const useFallbackAccounts = !accounts;
       const useFallbackBalanceSheets = !balanceSheets;
       const useFallbackTransactions = !transactions;
-      
+      const useFallbackExpenses = !expenses;
       return {
         accounts: accounts || fallbackData.accounts,
         balanceSheets: balanceSheets || fallbackData.balanceSheets,
         transactions: transactions || fallbackData.transactions,
+        expenses: expenses || fallbackData.expenses,
         usedFallback: useFallbackAccounts || useFallbackBalanceSheets || useFallbackTransactions,
         error: 'Some data was missing in the database'
       };
@@ -153,6 +180,7 @@ export async function fetchFinancialDataServer() {
       accounts,
       balanceSheets,
       transactions,
+      expenses,
       usedFallback: false
     };
   } catch (error) {
@@ -161,6 +189,7 @@ export async function fetchFinancialDataServer() {
       accounts: fallbackData.accounts,
       balanceSheets: fallbackData.balanceSheets,
       transactions: fallbackData.transactions,
+      expenses: fallbackData.expenses,
       usedFallback: true,
       error: `Server error: ${error instanceof Error ? error.message : String(error)}`
     };

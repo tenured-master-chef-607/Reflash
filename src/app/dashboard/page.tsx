@@ -8,6 +8,7 @@ import FinancialCharts from '@/components/FinancialCharts';
 import { testSupabaseConnection } from '@/utils/testSupabase';
 import { updateEnvFromSettings, notifyEnvironmentChanged } from '@/utils/environmentOverrides';
 import { fallbackData } from '@/utils/fallbackData';
+import ExpenseCategoryChart from '@/components/ExpenseCategoryChart';
 
 // Function to securely set cookies for Supabase credentials
 function setCookiesForSupabase(url: string, key: string) {
@@ -140,6 +141,36 @@ export default function FinancialDataPage() {
       key: settings.key ? `${settings.key.substring(0, 5)}...` : 'Not set',
     });
     
+    // Run initial connection test if credentials are set
+    const initialConnectionTest = async () => {
+      if (settings.url && settings.key) {
+        try {
+          const response = await fetch('/api/test-connection');
+          const result = await response.json();
+          
+          if (result.success) {
+            safeLocalStorage.removeItem('userSkippedCredentials');
+            // Update connection status
+            setConnectionStatus({
+              text: 'Connected',
+              color: theme === 'dark' ? 'text-green-400' : 'text-green-600'
+            });
+          } else {
+            safeLocalStorage.setItem('userSkippedCredentials', 'true');
+            // Update connection status
+            setConnectionStatus({
+              text: 'Connection error (using demo data)',
+              color: theme === 'dark' ? 'text-amber-400' : 'text-amber-500'
+            });
+          }
+        } catch (e) {
+          console.error('Error testing connection on initial load:', e);
+        }
+      }
+    };
+    
+    initialConnectionTest();
+    
     // No longer show credentials form on dashboard
     setLoading(false);
   }, []);
@@ -248,6 +279,25 @@ export default function FinancialDataPage() {
         }
       });
       
+      // Filter expense data based on date range
+      let filteredExpenses = [];
+      if (financialData.expenses && Array.isArray(financialData.expenses)) {
+        filteredExpenses = financialData.expenses.filter((expense: any) => {
+          if (!expense || !expense.date) {
+            console.warn("Found expense without date", expense);
+            return false;
+          }
+          try {
+            const expenseDate = new Date(expense.date);
+            return expenseDate >= startDate && expenseDate <= now;
+          } catch (err) {
+            console.error("Error parsing expense date", expense, err);
+            return false;
+          }
+        });
+        console.log(`Filtered ${filteredExpenses.length} dedicated expenses from ${financialData.expenses.length} total`);
+      }
+      
       // Find balance sheets within the date range
       const filteredBalanceSheets = financialData.balanceSheets.filter((sheet: any) => {
         if (!sheet || !sheet.date) {
@@ -270,7 +320,7 @@ export default function FinancialDataPage() {
       
       // Process the data for charts
       const revenueData = processRevenueData(filteredTransactions);
-      const expenseData = processExpenseData(filteredTransactions);
+      const expenseData = processExpenseData(filteredTransactions, filteredExpenses);
       const profitData = processProfitData(filteredTransactions, filteredBalanceSheets);
       
       console.log("Chart data processed:", {
@@ -335,8 +385,49 @@ export default function FinancialDataPage() {
   };
   
   // Process expense data for chart
-  const processExpenseData = (transactions: any[]) => {
+  const processExpenseData = (transactions: any[], dedicatedExpenses?: any[]) => {
     try {
+      // First try to use dedicated expense data if available
+      if (dedicatedExpenses && Array.isArray(dedicatedExpenses) && dedicatedExpenses.length > 0) {
+        console.log("Using dedicated expense data for chart:", dedicatedExpenses.length);
+        
+        const expenseByDate: { [key: string]: number } = {};
+        
+        // Calculate expenses by date from dedicated expense table
+        dedicatedExpenses.forEach((expense: any) => {
+          try {
+            if (!expense) return;
+            
+            // Check if we're dealing with raw or already mapped expense data
+            const dateField = expense.date || expense.transaction_date || expense.created_at;
+            const amountField = expense.amount || expense.total_amount || 0;
+            
+            if (!dateField) {
+              console.warn("Expense missing date", expense);
+              return;
+            }
+            
+            const date = dateField.split('T')[0];
+            const amount = parseFloat(amountField) || 0;
+            expenseByDate[date] = (expenseByDate[date] || 0) + amount;
+          } catch (err) {
+            console.error("Error processing dedicated expense data", expense, err);
+          }
+        });
+        
+        // Convert to array for chart display
+        const chartData = Object.entries(expenseByDate).map(([date, amount]) => ({
+          date,
+          amount
+        }));
+        
+        // Sort by date
+        return chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      }
+      
+      // Fall back to using transaction data if no dedicated expense data
+      console.log("No dedicated expense data, using transaction data for expense chart");
+      
       if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
         console.log("No transactions for expense data");
         return [];
@@ -818,6 +909,38 @@ export default function FinancialDataPage() {
     const handleSettingsChange = () => {
       console.log('Settings changed, refreshing dashboard data');
       refreshData();
+      
+      // Automatically test connection when settings change
+      const checkConnectionStatus = async () => {
+        // Only if we have credentials set
+        if (supabaseInfo.url !== 'Not set' && supabaseInfo.key !== 'Not set') {
+          try {
+            const response = await fetch('/api/test-connection');
+            const result = await response.json();
+            
+            if (result.success) {
+              safeLocalStorage.removeItem('userSkippedCredentials');
+              // Update connection status
+              setConnectionStatus({
+                text: 'Connected',
+                color: theme === 'dark' ? 'text-green-400' : 'text-green-600'
+              });
+            } else {
+              safeLocalStorage.setItem('userSkippedCredentials', 'true');
+              // Update connection status
+              setConnectionStatus({
+                text: 'Connection error (using demo data)',
+                color: theme === 'dark' ? 'text-amber-400' : 'text-amber-500'
+              });
+            }
+          } catch (e) {
+            safeLocalStorage.setItem('userSkippedCredentials', 'true');
+            console.error('Error testing connection:', e);
+          }
+        }
+      };
+      
+      checkConnectionStatus();
     };
     
     // Add event listeners for both localStorage changes and our custom events
@@ -830,7 +953,7 @@ export default function FinancialDataPage() {
       window.removeEventListener('supabase-credentials-changed', handleSettingsChange);
       window.removeEventListener('supabase-connection-tested', handleSettingsChange);
     };
-  }, []);
+  }, [supabaseInfo.url, supabaseInfo.key, theme]);
 
   // Update connection status text and color based on current state
   useEffect(() => {
@@ -946,7 +1069,8 @@ export default function FinancialDataPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      if (supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true') {
+                      // If Supabase is not configured, show the form
+                      if (supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set') {
                         setShowCredentialsForm(true); 
                       } else {
                         window.location.href = '/settings';
@@ -958,52 +1082,8 @@ export default function FinancialDataPage() {
                         : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                     }`}
                   >
-                    {supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true'
-                      ? 'Connect to Supabase' 
-                      : 'Modify Settings'}
+                    Modify Settings
                   </button>
-                  
-                  {(supabaseInfo.url !== 'Not set' && supabaseInfo.key !== 'Not set') && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          // Show basic toast message
-                          alert('Testing connection... This may take a moment.');
-                          
-                          // Call the test connection API
-                          const response = await fetch('/api/test-connection');
-                          const result = await response.json();
-                          
-                          // Display the test results
-                          if (result.success) {
-                            // Remove userSkippedCredentials flag when connection test succeeds
-                            safeLocalStorage.removeItem('userSkippedCredentials');
-                            alert(`Connection test successful! Database is accessible.`);
-                          } else {
-                            // Set userSkippedCredentials flag when connection test fails
-                            safeLocalStorage.setItem('userSkippedCredentials', 'true');
-                            alert(`Connection test failed. Details:\n\n${
-                              result.tests?.errorDetails?.basicTest || 
-                              result.tests?.errorDetails?.tableTest ||
-                              result.message || 
-                              'Unknown error'
-                            }\n\nYou can use demo data until connection is fixed.`);
-                          }
-                        } catch (e) {
-                          // Set userSkippedCredentials flag when connection test errors
-                          safeLocalStorage.setItem('userSkippedCredentials', 'true');
-                          alert(`Error testing connection: ${e instanceof Error ? e.message : String(e)}\n\nYou can use demo data until connection is fixed.`);
-                        }
-                      }}
-                      className={`px-2 py-1 rounded text-xs ${
-                        theme === 'dark'
-                          ? 'bg-green-700 hover:bg-green-600 text-white'
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
-                    >
-                      Test Connection
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -1024,9 +1104,9 @@ export default function FinancialDataPage() {
                     </Link>
                   ) : null}
                 </div>
-              ) : supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true' ? (
+              ) : supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' ? (
                 <div className={`${error && (error.includes('demo data') || error.includes('Using demo data')) ? '' : 'flex justify-between items-center'} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                  <p>Using demo data. Click "Connect to Supabase" above to use your own database.</p>
+                  <p>Using demo data. Go to Settings to connect your own database.</p>
                   {!error || (!error.includes('demo data') && !error.includes('Using demo data')) ? (
                     <Link 
                       href="/settings" 
@@ -1293,7 +1373,10 @@ export default function FinancialDataPage() {
                     theme === 'dark' ? 'text-indigo-300 border-slate-700' : 'text-indigo-900 border-slate-100'
                   }`}>Expense Analysis</h3>
                   <div className="h-80">
-                    <FinancialCharts data={{ date: new Date().toISOString().split('T')[0], interval: selectedInterval, chartType: 'expense' }} />
+                    <h4 className={`text-sm font-medium mb-2 ${theme === 'dark' ? 'text-indigo-200' : 'text-indigo-700'}`}>
+                      Expenses by Category
+                    </h4>
+                    <ExpenseCategoryChart expenses={data?.expenses || []} />
                   </div>
                 </div>
                 
@@ -1306,7 +1389,7 @@ export default function FinancialDataPage() {
                     theme === 'dark' ? 'text-indigo-300 border-slate-700' : 'text-indigo-900 border-slate-100'
                   }`}>Profit Margin</h3>
                   <div className="h-80">
-                    <FinancialCharts data={{ date: new Date().toISOString().split('T')[0], interval: selectedInterval, chartType: 'profit' }} />
+                    <FinancialCharts data={{ date: new Date().toISOString().split('T')[0], interval: selectedInterval, chartType: 'netProfitMargin' }} />
                   </div>
                 </div>
               </div>
@@ -1396,6 +1479,115 @@ export default function FinancialDataPage() {
                           <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                             No balance sheets data found. Please go to Settings and click "Create Required Tables".
                           </p>
+                        )}
+                      </div>
+                      
+                      <div className="mb-8">
+                        <h4 className={`text-lg font-medium mb-3 ${
+                          theme === 'dark' ? 'text-indigo-200 border-slate-700' : 'text-indigo-800 border-slate-200'
+                        } border-b pb-1`}>
+                          Expenses
+                        </h4>
+                        {/* Debug information */}
+                        <div className="mb-2 text-xs">
+                          <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
+                            <strong>Expense data stats:</strong> {data.expenses ? `${data.expenses.length} expenses found` : 'No expense data'}
+                          </p>
+                          {data.expenses && data.expenses.length > 0 && (
+                            <div className={`mt-1 p-2 ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'} rounded overflow-x-auto`}>
+                              <code>
+                                First expense fields: {JSON.stringify(Object.keys(data.expenses[0] || {}))}
+                              </code>
+                              <details className="mt-1">
+                                <summary className="cursor-pointer text-xs text-indigo-500">View expense example</summary>
+                                <pre className="mt-1 text-xs overflow-x-auto">
+                                  {JSON.stringify(data.expenses[0], null, 2)}
+                                </pre>
+                              </details>
+                            </div>
+                          )}
+                        </div>
+                        {data.expenses && data.expenses.length > 0 ? (
+                          <div>
+                            <h5 className="text-sm font-medium mb-2 mt-3">Original Raw Expense Data:</h5>
+                            <pre className={`p-4 rounded-lg overflow-auto max-h-96 text-sm ${
+                              theme === 'dark' 
+                                ? 'bg-slate-900 border border-slate-700 text-slate-300' 
+                                : 'bg-slate-50 border border-slate-200 text-slate-800'
+                            }`}>
+                              {JSON.stringify(
+                                data.expenses.slice(0, 5),
+                                null, 
+                                2
+                              )}
+                            </pre>
+                            <h5 className="text-sm font-medium mb-2 mt-3">Mapped Expense Data:</h5>
+                            <pre className={`p-4 rounded-lg overflow-auto max-h-96 text-sm ${
+                              theme === 'dark' 
+                                ? 'bg-slate-900 border border-slate-700 text-slate-300' 
+                                : 'bg-slate-50 border border-slate-200 text-slate-800'
+                            }`}>
+                              {JSON.stringify(
+                                data.expenses
+                                  .slice(0, 10)
+                                  .map((expense: any) => ({
+                                    date: expense.date,
+                                    amount: expense.amount,
+                                    description: expense.description,
+                                    category: expense.category
+                                  })), 
+                                null, 
+                                2
+                              )}
+                            </pre>
+                            {data.expenses.length > 10 && (
+                              <div className={`mt-2 text-sm font-medium ${
+                                theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'
+                              }`}>
+                                Showing 10 of {data.expenses.length} expenses...
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} mb-2`}>
+                              No dedicated expense data found. Showing expense transactions (type = 'debit') instead:
+                            </p>
+                            {data.transactions && data.transactions.length > 0 ? (
+                              <div>
+                                <pre className={`p-4 rounded-lg overflow-auto max-h-96 text-sm ${
+                                  theme === 'dark' 
+                                    ? 'bg-slate-900 border border-slate-700 text-slate-300' 
+                                    : 'bg-slate-50 border border-slate-200 text-slate-800'
+                                }`}>
+                                  {JSON.stringify(
+                                    data.transactions
+                                      .filter((t: any) => t.type === 'debit')
+                                      .slice(0, 10)
+                                      .map((t: any) => ({
+                                        date: t.date,
+                                        amount: t.amount,
+                                        description: t.description,
+                                        category: t.category
+                                      })), 
+                                    null, 
+                                    2
+                                  )}
+                                </pre>
+                                {data.transactions.filter((t: any) => t.type === 'debit').length > 10 && (
+                                  <div className={`mt-2 text-sm font-medium ${
+                                    theme === 'dark' ? 'text-indigo-400' : 'text-indigo-600'
+                                  }`}>
+                                    Showing 10 of {data.transactions.filter((t: any) => t.type === 'debit').length} expense transactions...
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                                No expense data found. Please go to Settings and click "Create Required Tables".
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                       
