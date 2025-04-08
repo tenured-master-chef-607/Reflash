@@ -35,6 +35,26 @@ function setCookiesForSupabase(url: string, key: string) {
   document.cookie = `supabase-key=${encodedKey}; path=/; expires=${expires.toUTCString()}${secure}${sameSite}`;
 }
 
+// Create a safe localStorage function to prevent SSR errors
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(key, value);
+    }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(key);
+    }
+  }
+};
+
 export default function FinancialDataPage() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -57,18 +77,22 @@ export default function FinancialDataPage() {
   // Listen for theme changes
   useEffect(() => {
     // Load theme from localStorage
-    const savedSettings = localStorage.getItem('reflashSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setTheme(settings.theme || 'light');
-    }
-    
-    // Listen for theme changes
-    const handleThemeChange = () => {
+    if (typeof window !== 'undefined') {
       const savedSettings = localStorage.getItem('reflashSettings');
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         setTheme(settings.theme || 'light');
+      }
+    }
+    
+    // Listen for theme changes
+    const handleThemeChange = () => {
+      if (typeof window !== 'undefined') {
+        const savedSettings = localStorage.getItem('reflashSettings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          setTheme(settings.theme || 'light');
+        }
       }
     };
     
@@ -892,12 +916,12 @@ export default function FinancialDataPage() {
                   <Link href="/settings" className={`ml-1 underline ${
                     supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || 
                     (error && error.includes('not configured')) ||
-                    localStorage.getItem('userSkippedCredentials') === 'true'
+                    safeLocalStorage.getItem('userSkippedCredentials') === 'true'
                       ? (theme === 'dark' ? 'text-amber-400' : 'text-amber-500')
                       : (theme === 'dark' ? 'text-green-400' : 'text-green-600')
                   }`}>
                     {supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || 
-                     localStorage.getItem('userSkippedCredentials') === 'true'
+                     safeLocalStorage.getItem('userSkippedCredentials') === 'true'
                       ? 'Not configured (using demo data)'
                       : error && error.includes('not configured')
                         ? 'Not configured (connection error - using demo data)'
@@ -907,7 +931,7 @@ export default function FinancialDataPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      if (supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || localStorage.getItem('userSkippedCredentials') === 'true') {
+                      if (supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true') {
                         setShowCredentialsForm(true); 
                       } else {
                         window.location.href = '/settings';
@@ -919,7 +943,7 @@ export default function FinancialDataPage() {
                         : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                     }`}
                   >
-                    {supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || localStorage.getItem('userSkippedCredentials') === 'true'
+                    {supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true'
                       ? 'Connect to Supabase' 
                       : 'Modify Settings'}
                   </button>
@@ -938,11 +962,11 @@ export default function FinancialDataPage() {
                           // Display the test results
                           if (result.success) {
                             // Remove userSkippedCredentials flag when connection test succeeds
-                            localStorage.removeItem('userSkippedCredentials');
+                            safeLocalStorage.removeItem('userSkippedCredentials');
                             alert(`Connection test successful! Database is accessible.`);
                           } else {
                             // Set userSkippedCredentials flag when connection test fails
-                            localStorage.setItem('userSkippedCredentials', 'true');
+                            safeLocalStorage.setItem('userSkippedCredentials', 'true');
                             alert(`Connection test failed. Details:\n\n${
                               result.tests?.errorDetails?.basicTest || 
                               result.tests?.errorDetails?.tableTest ||
@@ -952,7 +976,7 @@ export default function FinancialDataPage() {
                           }
                         } catch (e) {
                           // Set userSkippedCredentials flag when connection test errors
-                          localStorage.setItem('userSkippedCredentials', 'true');
+                          safeLocalStorage.setItem('userSkippedCredentials', 'true');
                           alert(`Error testing connection: ${e instanceof Error ? e.message : String(e)}\n\nYou can use demo data until connection is fixed.`);
                         }
                       }}
@@ -985,7 +1009,7 @@ export default function FinancialDataPage() {
                     </Link>
                   ) : null}
                 </div>
-              ) : supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || localStorage.getItem('userSkippedCredentials') === 'true' ? (
+              ) : supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || safeLocalStorage.getItem('userSkippedCredentials') === 'true' ? (
                 <div className={`${error && (error.includes('demo data') || error.includes('Using demo data')) ? '' : 'flex justify-between items-center'} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                   <p>Using demo data. Click "Connect to Supabase" above to use your own database.</p>
                   {!error || (!error.includes('demo data') && !error.includes('Using demo data')) ? (
@@ -1107,7 +1131,7 @@ export default function FinancialDataPage() {
                   <button
                     onClick={() => {
                       // Set userSkippedCredentials flag when user chooses to use demo data
-                      localStorage.setItem('userSkippedCredentials', 'true');
+                      safeLocalStorage.setItem('userSkippedCredentials', 'true');
                       // Close the form
                       setShowCredentialsForm(false);
                       // Refresh data to load demo data
@@ -1125,7 +1149,7 @@ export default function FinancialDataPage() {
                     <button
                       onClick={() => {
                         // Set userSkippedCredentials flag when canceling too
-                        localStorage.setItem('userSkippedCredentials', 'true');
+                        safeLocalStorage.setItem('userSkippedCredentials', 'true');
                         // Close the form
                         setShowCredentialsForm(false);
                         // Refresh data to load demo data
