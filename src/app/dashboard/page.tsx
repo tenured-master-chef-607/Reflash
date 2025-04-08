@@ -72,7 +72,11 @@ export default function FinancialDataPage() {
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
   const [configTesting, setConfigTesting] = useState(false);
-  const [configTestResult, setConfigTestResult] = useState<{success: boolean; message: string} | null>(null);
+  const [configTestResult, setConfigTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<{ text: string; color: string }>({ 
+    text: 'Not configured (using demo data)',
+    color: 'text-amber-500'
+  });
   
   // Listen for theme changes
   useEffect(() => {
@@ -828,6 +832,28 @@ export default function FinancialDataPage() {
     };
   }, []);
 
+  // Update connection status text and color based on current state
+  useEffect(() => {
+    if (supabaseInfo.url === 'Not set' || 
+        supabaseInfo.key === 'Not set' || 
+        safeLocalStorage.getItem('userSkippedCredentials') === 'true') {
+      setConnectionStatus({
+        text: 'Not configured (using demo data)',
+        color: theme === 'dark' ? 'text-amber-400' : 'text-amber-500'
+      });
+    } else if (error && error.includes('not configured')) {
+      setConnectionStatus({
+        text: 'Not configured (connection error - using demo data)',
+        color: theme === 'dark' ? 'text-amber-400' : 'text-amber-500'
+      });
+    } else {
+      setConnectionStatus({
+        text: 'Configured',
+        color: theme === 'dark' ? 'text-green-400' : 'text-green-600'
+      });
+    }
+  }, [supabaseInfo.url, supabaseInfo.key, error, theme]);
+
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-white'}`}>
       <Header activePage="dashboard" />
@@ -913,19 +939,8 @@ export default function FinancialDataPage() {
                 </div>
                 <div className="flex items-center">
                   <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>Status:</span>
-                  <Link href="/settings" className={`ml-1 underline ${
-                    supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || 
-                    (error && error.includes('not configured')) ||
-                    safeLocalStorage.getItem('userSkippedCredentials') === 'true'
-                      ? (theme === 'dark' ? 'text-amber-400' : 'text-amber-500')
-                      : (theme === 'dark' ? 'text-green-400' : 'text-green-600')
-                  }`}>
-                    {supabaseInfo.url === 'Not set' || supabaseInfo.key === 'Not set' || 
-                     safeLocalStorage.getItem('userSkippedCredentials') === 'true'
-                      ? 'Not configured (using demo data)'
-                      : error && error.includes('not configured')
-                        ? 'Not configured (connection error - using demo data)'
-                        : 'Configured'}
+                  <Link href="/settings" className={`ml-1 underline ${connectionStatus.color}`}>
+                    {connectionStatus.text}
                   </Link>
                 </div>
                 <div className="flex gap-2">
