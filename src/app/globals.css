@@ -1,8 +1,70 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Modern color palette with sleek aesthetic */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #a5b4fc;
+  --secondary: #475569;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --card-bg: #ffffff;
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --input-border: #e2e8f0;
+  --input-bg: #ffffff;
+  --header-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+
+  /* Financial theme colors - Indigo palette */
+  --indigo-900: #312e81;
+  --indigo-800: #3730a3;
+  --indigo-700: #4338ca;
+  --indigo-600: #4f46e5;
+  --indigo-500: #6366f1;
+  --indigo-400: #818cf8;
+  --indigo-300: #a5b4fc;
+  --indigo-200: #c7d2fe;
+  --indigo-100: #e0e7ff;
+  --indigo-50: #eef2ff;
+  
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50: #f8fafc;
+}
+
+.dark-theme {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --primary: #818cf8;
+  --primary-dark: #6366f1;
+  --primary-light: #a5b4fc;
+  --secondary: #94a3b8;
+  --card-bg: #1e293b;
+  --card-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -8px rgba(0, 0, 0, 0.2);
+  --input-border: #334155;
+  --input-bg: #1e293b;
+  --header-bg: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
+  
+  /* Adjust indigo shades for dark mode */
+  --indigo-900: #c7d2fe;
+  --indigo-800: #a5b4fc;
+  --indigo-700: #818cf8;
+  --indigo-600: #6366f1;
+  --indigo-500: #4f46e5;
+  --indigo-400: #4338ca;
+  --indigo-300: #3730a3;
+  --indigo-200: #312e81;
+  --indigo-100: #1e1b4b;
+  --indigo-50: #1e1b4b;
 }
 
 @theme inline {
@@ -14,13 +76,554 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --primary: #818cf8;
+    --primary-dark: #6366f1;
+    --primary-light: #a5b4fc;
+    --secondary: #94a3b8;
+    --card-bg: #1e293b;
+    --card-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3), 0 8px 16px -8px rgba(0, 0, 0, 0.2);
+    --input-border: #334155;
+    --input-bg: #1e293b;
+    --header-bg: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.card {
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  border-radius: 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin-bottom: 1.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.chat-messages {
+  min-height: 150px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+  color: var(--slate-700) !important;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 20px;
+}
+
+.chat-messages .message {
+  margin-bottom: 0.5rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  line-height: 1.5;
+  color: var(--slate-700) !important;
+  backdrop-filter: blur(4px);
+}
+
+.chat-messages .user-message {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+  border-left: 3px solid var(--indigo-400) !important;
+  margin-left: 1rem;
+  border-top-left-radius: 0.25rem;
+}
+
+.chat-messages .bot-message {
+  background-color: rgba(241, 245, 249, 0.7) !important;
+  border-right: 3px solid var(--indigo-300) !important;
+  margin-right: 1rem;
+  border-top-right-radius: 0.25rem;
+}
+
+/* Loading animation */
+.loading {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 20px;
+}
+
+.loading:after {
+  content: " ";
+  display: block;
+  border-radius: 50%;
+  width: 0;
+  height: 0;
+  margin: 8px;
+  box-sizing: border-box;
+  border: 12px solid var(--primary);
+  border-color: var(--primary) transparent var(--primary) transparent;
+  animation: loading 1.2s infinite;
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0);
+    animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  }
+  50% {
+    transform: rotate(180deg);
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fancy select styles */
+.fancy-select {
+  position: relative;
+  border-radius: 0.75rem;
+  border: 2px solid var(--input-border);
+  background-color: var(--input-bg);
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.fancy-select:hover {
+  border-color: var(--primary-light);
+}
+
+.fancy-select:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.fancy-select select {
+  appearance: none;
+  background-color: transparent;
+  border: none;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  width: 100%;
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  outline: none;
+}
+
+.fancy-select::after {
+  content: '';
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-bottom: 2px solid var(--primary);
+  border-right: 2px solid var(--primary);
+  pointer-events: none;
+  transform: translateY(-75%) rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.fancy-select:hover::after {
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* Button styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(99, 102, 241, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(99, 102, 241, 0.35);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Generate report button */
+.btn-generate {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+  min-width: 10rem;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-generate:hover:not(:disabled) {
+  box-shadow: 0 8px 15px -4px rgba(99, 102, 241, 0.4);
+  transform: translateY(-3px);
+}
+
+.btn-generate:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, 0.25);
+}
+
+.btn-generate:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Chart dots nav */
+.chart-dot-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background-color: rgba(248, 250, 252, 0.8);
+  border-radius: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.chart-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chart-dot.active {
+  background-color: var(--primary);
+  transform: scale(1.3);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  column-gap: 0.25rem;
+}
+
+.typing-indicator span {
+  height: 0.5rem;
+  width: 0.5rem;
+  float: left;
+  margin: 0 1px;
+  background-color: var(--primary);
+  display: block;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.typing-indicator span:nth-of-type(1) {
+  animation: typing 1s infinite;
+}
+
+.typing-indicator span:nth-of-type(2) {
+  animation: typing 1s 0.33s infinite;
+}
+
+.typing-indicator span:nth-of-type(3) {
+  animation: typing 1s 0.66s infinite;
+}
+
+@keyframes typing {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Card title styling */
+.card-title {
+  position: relative;
+  color: var(--foreground);
+  font-weight: 700;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(241, 245, 249, 0.6);
+  display: flex;
+  align-items: center;
+}
+
+.card-title h2 {
+  color: var(--foreground);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.card-title-icon {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  color: white;
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, 0.3);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+}
+
+/* Financial stats styling */
+.financial-stats h2, .llm-analysis h2 {
+  color: var(--indigo-900) !important;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--indigo-200);
+  position: relative;
+}
+
+.financial-stats h2::after, .llm-analysis h2::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 2.5rem;
+  height: 2px;
+  background-color: var(--indigo-600);
+}
+
+.financial-stats h3, .llm-analysis h3 {
+  color: var(--indigo-800) !important;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  background-color: var(--indigo-50);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.financial-stats ul, .llm-analysis ul,
+.financial-stats ol, .llm-analysis ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1.25rem;
+  color: var(--slate-700) !important;
+}
+
+.financial-stats li, .llm-analysis li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  color: var(--slate-700) !important;
+}
+
+.financial-stats strong, .llm-analysis strong {
+  color: var(--indigo-700) !important;
+  font-weight: 600;
+}
+
+.financial-stats p, .llm-analysis p {
+  color: var(--slate-700) !important;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* Add specific prose styling for financial components */
+.prose {
+  color: var(--slate-700) !important;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: var(--indigo-900) !important;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose strong {
+  color: var(--indigo-700) !important;
+  font-weight: 600;
+}
+
+.prose ol, .prose ul {
+  color: var(--slate-700) !important;
+  margin-left: 1.75em;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.prose ol li, .prose ul li {
+  color: var(--slate-700) !important;
+  margin-bottom: 0.375em;
+  padding-left: 0.375em;
+}
+
+.prose a {
+  color: var(--indigo-600) !important;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.prose code {
+  color: var(--indigo-700) !important;
+  background-color: var(--indigo-50);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+}
+
+/* Ensure text in the markdown is readable regardless of parent background */
+.prose * {
+  color: var(--slate-700) !important;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: var(--indigo-900) !important;
+}
+
+.prose strong, .prose b {
+  color: var(--indigo-700) !important;
+}
+
+/* Navbar styles */
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.2s;
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: white;
+  text-decoration: none;
+  min-width: 115px;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.nav-item.active {
+  background-color: var(--primary-dark);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  font-weight: 600;
+  position: relative;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  
+  50% {
+    opacity: 0.1;
+    transform: scale(1.05);
+  }
+}
+
+.nav-item svg {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.375rem;
+}
+
+/* Ensure select elements and options are clearly visible */
+select {
+  color: var(--slate-700) !important;
+  background-color: white !important;
+}
+
+select option {
+  color: var(--slate-700) !important;
+  background-color: white !important;
+}
+
+/* Ensure labels have sufficient contrast */
+label {
+  color: var(--slate-700) !important;
+}
+
+/* Ensure placeholder text is visible */
+::placeholder {
+  color: var(--slate-500) !important;
+  opacity: 1 !important;
 }

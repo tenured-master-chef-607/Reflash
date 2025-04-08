@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Agents API Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 1rem;
+    }
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    select, textarea, input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    button:disabled {
+      background-color: #93c5fd;
+      cursor: not-allowed;
+    }
+    pre {
+      background-color: #f9fafb;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Financial Agents API Test</h1>
+  
+  <div class="card">
+    <h2>Run Analysis</h2>
+    
+    <div class="form-group">
+      <label for="agentType">Agent Type</label>
+      <select id="agentType">
+        <option value="financial">Senior Financial Analyst</option>
+        <option value="economic">Economic Analyst</option>
+        <option value="news">News Analyst</option>
+        <option value="comprehensive">Comprehensive Analysis</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="economicContextContainer" style="display: none;">
+      <label for="economicContext">Economic Context (JSON)</label>
+      <textarea id="economicContext" rows="10">
+{
+  "period": "Current Quarter",
+  "region": "United States",
+  "gdpGrowth": 0.032,
+  "inflation": 0.042,
+  "unemployment": 0.038,
+  "interestRates": {
+    "federal": 0.05,
+    "prime": 0.075
+  },
+  "industryTrends": [
+    "Increased digital transformation",
+    "Supply chain challenges",
+    "Rising labor costs"
+  ],
+  "marketIndices": {
+    "S&P 500": 4580,
+    "NASDAQ": 14500,
+    "DOW": 36000
+  }
+}
+      </textarea>
+    </div>
+
+    <div class="form-group" id="newsArticlesContainer" style="display: none;">
+      <label for="newsArticles">News Articles (JSON)</label>
+      <textarea id="newsArticles" rows="10">
+[
+  {
+    "title": "Company Inc. Reports Strong Quarterly Earnings",
+    "source": "Financial Times",
+    "date": "2023-04-01",
+    "content": "Company Inc. has reported better than expected quarterly earnings, with revenue up 15% year-over-year. The company cited strong product demand and successful cost-cutting measures as key drivers of growth.",
+    "sentiment": { "score": 0.8, "label": "positive" }
+  },
+  {
+    "title": "Industry Faces Regulatory Challenges",
+    "source": "Wall Street Journal",
+    "date": "2023-03-25",
+    "content": "The technology industry is facing increased regulatory scrutiny, with new legislation being proposed that could impact profitability and operations. Analysts suggest companies may need to adjust their business models.",
+    "sentiment": { "score": -0.5, "label": "negative" }
+  }
+]
+      </textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="companyInfo">Company Info</label>
+      <input type="text" id="companyInfo" value="Demo Company Inc. (Technology Sector)" />
+    </div>
+    
+    <button id="runButton">Run Analysis</button>
+  </div>
+  
+  <div id="errorContainer" class="error" style="display: none;"></div>
+  
+  <div class="card" id="resultsContainer" style="display: none;">
+    <h2>Analysis Results</h2>
+    <pre id="results"></pre>
+  </div>
+
+  <script>
+    // DOM elements
+    const agentTypeSelect = document.getElementById('agentType');
+    const economicContextContainer = document.getElementById('economicContextContainer');
+    const newsArticlesContainer = document.getElementById('newsArticlesContainer');
+    const economicContextTextarea = document.getElementById('economicContext');
+    const newsArticlesTextarea = document.getElementById('newsArticles');
+    const companyInfoInput = document.getElementById('companyInfo');
+    const runButton = document.getElementById('runButton');
+    const errorContainer = document.getElementById('errorContainer');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsOutput = document.getElementById('results');
+
+    // Show/hide form sections based on agent type
+    agentTypeSelect.addEventListener('change', () => {
+      const agentType = agentTypeSelect.value;
+      economicContextContainer.style.display = 
+        (agentType === 'economic' || agentType === 'comprehensive') ? 'block' : 'none';
+      newsArticlesContainer.style.display = 
+        (agentType === 'news' || agentType === 'comprehensive') ? 'block' : 'none';
+    });
+
+    // Run analysis
+    runButton.addEventListener('click', async () => {
+      try {
+        errorContainer.style.display = 'none';
+        resultsContainer.style.display = 'none';
+        
+        // Show loading state
+        const originalButtonText = runButton.innerHTML;
+        runButton.disabled = true;
+        runButton.innerHTML = '<span class="spinner"></span> Analyzing...';
+        
+        const agentType = agentTypeSelect.value;
+        const companyInfo = companyInfoInput.value.split('(');
+        const companyName = companyInfo[0].trim();
+        const industry = companyInfo.length > 1 ? 
+          companyInfo[1].replace(')', '').trim() : 'Technology';
+        
+        // Build request body
+        const requestBody = {
+          agentType,
+          targetDate: new Date().toISOString().split('T')[0],
+          companyName,
+          industry
+        };
+        
+        // Add agent-specific data
+        if (agentType === 'economic' || agentType === 'comprehensive') {
+          try {
+            requestBody.economicContext = JSON.parse(economicContextTextarea.value);
+          } catch (e) {
+            throw new Error('Invalid economic context JSON');
+          }
+        }
+        
+        if (agentType === 'news' || agentType === 'comprehensive') {
+          try {
+            requestBody.newsArticles = JSON.parse(newsArticlesTextarea.value);
+          } catch (e) {
+            throw new Error('Invalid news articles JSON');
+          }
+        }
+        
+        // Call the API
+        const response = await fetch('/api/financial/agents', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+        
+        const data = await response.json();
+        
+        // Handle error
+        if (!response.ok) {
+          throw new Error(data.error || 'Unknown error occurred');
+        }
+        
+        // Display results
+        resultsContainer.style.display = 'block';
+        resultsOutput.textContent = JSON.stringify(data, null, 2);
+        
+      } catch (error) {
+        // Display error
+        errorContainer.style.display = 'block';
+        errorContainer.textContent = `Error: ${error.message}`;
+      } finally {
+        // Reset button
+        runButton.disabled = false;
+        runButton.innerHTML = originalButtonText;
+      }
+    });
+
+    // Initialize form
+    agentTypeSelect.dispatchEvent(new Event('change'));
+  </script>
+</body>
+</html> 
