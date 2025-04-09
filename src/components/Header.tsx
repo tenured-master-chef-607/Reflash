@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 
 type HeaderProps = {
   activePage: 'dashboard' | 'reports' | 'settings';
@@ -10,6 +10,7 @@ type HeaderProps = {
 
 export default function Header({ activePage }: HeaderProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     // Load theme from localStorage on component mount
@@ -60,6 +61,7 @@ export default function Header({ activePage }: HeaderProps) {
         </div>
         
         <div className="flex items-center">
+          {/* Desktop navigation */}
           <nav className="hidden md:flex space-x-8 mr-6">
             <Link 
               href="/dashboard" 
@@ -95,6 +97,19 @@ export default function Header({ activePage }: HeaderProps) {
             </Link>
           </nav>
           
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden mr-3 p-2 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 transition-all duration-300"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <XMarkIcon className="h-6 w-6 text-white" />
+            ) : (
+              <Bars3Icon className="h-6 w-6 text-white" />
+            )}
+          </button>
+          
           <button 
             onClick={toggleTheme}
             className="p-2.5 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 transition-all duration-300 shadow-md backdrop-blur-sm"
@@ -107,6 +122,45 @@ export default function Header({ activePage }: HeaderProps) {
             )}
           </button>
         </div>
+      </div>
+      
+      {/* Mobile navigation menu */}
+      <div className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'} pt-4 pb-2 mt-3 border-t border-indigo-400 border-opacity-30`}>
+        <nav className="flex flex-col space-y-3">
+          <Link 
+            href="/dashboard" 
+            className={`${
+              activePage === 'dashboard' 
+                ? 'bg-white bg-opacity-20 rounded-md font-semibold' 
+                : 'text-indigo-100 hover:bg-white hover:bg-opacity-10 rounded-md'
+            } py-2 px-3 text-base transition-all`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Dashboard
+          </Link>
+          <Link 
+            href="/reports" 
+            className={`${
+              activePage === 'reports' 
+                ? 'bg-white bg-opacity-20 rounded-md font-semibold' 
+                : 'text-indigo-100 hover:bg-white hover:bg-opacity-10 rounded-md'
+            } py-2 px-3 text-base transition-all`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Reports
+          </Link>
+          <Link 
+            href="/settings" 
+            className={`${
+              activePage === 'settings' 
+                ? 'bg-white bg-opacity-20 rounded-md font-semibold' 
+                : 'text-indigo-100 hover:bg-white hover:bg-opacity-10 rounded-md'
+            } py-2 px-3 text-base transition-all`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Settings
+          </Link>
+        </nav>
       </div>
     </header>
   );

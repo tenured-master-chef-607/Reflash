@@ -1376,7 +1376,7 @@ export default function FinancialDataPage() {
                     <h4 className={`text-sm font-medium mb-2 ${theme === 'dark' ? 'text-indigo-200' : 'text-indigo-700'}`}>
                       Expenses by Category
                     </h4>
-                    <ExpenseCategoryChart expenses={data?.expenses || []} />
+                    <ExpenseCategoryChart expenses={data?.expenses || fallbackData?.expenses || []} />
                   </div>
                 </div>
                 
@@ -1628,6 +1628,16 @@ export default function FinancialDataPage() {
           )}
         </div>
       </main>
+      
+      <footer className={`py-4 text-center text-xs border-t ${
+        theme === 'dark'
+          ? 'bg-slate-800 text-slate-400 border-slate-700'
+          : 'bg-white text-slate-500 border-slate-200'
+      }`}>
+        <div className="max-w-7xl mx-auto px-6">
+          Reflash Financial Analytics © {new Date().getFullYear()} • Advanced Financial Insights
+        </div>
+      </footer>
     </div>
   );
 }

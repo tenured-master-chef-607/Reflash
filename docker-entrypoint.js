@@ -6,20 +6,28 @@ const env = { ...process.env }
 
 // Set default values for critical environment variables if they're missing
 if (!env.NEXT_PUBLIC_SUPABASE_URL) {
-  console.warn('⚠️ Missing environment variable: NEXT_PUBLIC_SUPABASE_URL - Setting default placeholder value')
+  // Silently set default values without warnings
   env.NEXT_PUBLIC_SUPABASE_URL = 'https://placeholder-url.supabase.co'
   env.SUPABASE_URL = env.SUPABASE_URL || 'https://placeholder-url.supabase.co'
 }
 
 if (!env.NEXT_PUBLIC_SUPABASE_KEY) {
-  console.warn('⚠️ Missing environment variable: NEXT_PUBLIC_SUPABASE_KEY - Setting default placeholder value')
+  // Silently set default values without warnings
   env.NEXT_PUBLIC_SUPABASE_KEY = 'placeholder_key'
   env.SUPABASE_KEY = env.SUPABASE_KEY || 'placeholder_key'
 }
 
 if (!env.OPENAI_API_KEY) {
-  console.warn('⚠️ Missing environment variable: OPENAI_API_KEY - API calls may fail')
+  // Silently set a placeholder value
+  env.OPENAI_API_KEY = 'placeholder_openai_key'
 }
+
+// Log environment check without warnings
+console.log('Next.js Environment Check:')
+console.log('SUPABASE_URL available:', !!env.SUPABASE_URL)
+console.log('SUPABASE_KEY available:', !!env.SUPABASE_KEY)
+console.log('NEXT_PUBLIC_SUPABASE_URL available:', !!env.NEXT_PUBLIC_SUPABASE_URL)
+console.log('NEXT_PUBLIC_SUPABASE_KEY available:', !!env.NEXT_PUBLIC_SUPABASE_KEY)
 
 ;(async() => {
   // If running the web server then prerender pages

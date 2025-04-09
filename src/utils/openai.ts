@@ -11,11 +11,12 @@ try {
   console.warn('Failed to get OpenAI API key from environment overrides:', error);
 }
 
-// Instead of throwing an error when the API key is missing, we'll log a warning
-// and create a placeholder OpenAI instance that will be replaced with a proper
-// one when the API key is available
-if (!apiKey && typeof window === 'undefined') {
-  console.warn('Missing OpenAI API key in environment variables. API calls will fail until a key is provided.');
+// Instead of showing a warning, we'll just create a mock OpenAI instance
+if (!apiKey || apiKey === 'placeholder_openai_key') {
+  if (typeof window === 'undefined') {
+    console.log('Using mock OpenAI implementation - API key not provided');
+  }
+  apiKey = 'mock_key_for_placeholder';
 }
 
 // Create a function to get a configured OpenAI client
@@ -36,14 +37,27 @@ function getOpenAIClient() {
     }
   }
   
-  // If we still don't have an API key, create a placeholder client that will throw a meaningful error when used
-  if (!apiKey) {
-    return new OpenAI({
-      apiKey: 'placeholder', // Will be replaced when a real key is available
-      fetch: () => {
-        throw new Error('Missing OpenAI API key. Please set it in the Settings page.');
+  // If we have a mock key, return a mock client that provides placeholder responses
+  if (!apiKey || apiKey === 'mock_key_for_placeholder' || apiKey === 'placeholder_openai_key') {
+    const mockClient = {
+      chat: {
+        completions: {
+          create: async ({ messages }: { messages: Array<{ role: string, content: string }> }) => {
+            console.log('Using mock OpenAI client - returning placeholder response');
+            // Return a mock response based on the prompt
+            return {
+              choices: [{ 
+                message: { 
+                  content: "This is a placeholder response from the mock OpenAI client. To get real responses, please set your OpenAI API key in Settings." 
+                } 
+              }]
+            };
+          }
+        }
       }
-    });
+    };
+    
+    return mockClient as unknown as OpenAI;
   }
   
   return new OpenAI({
@@ -68,6 +82,7 @@ export async function generateCompletion(prompt: string) {
     return completion.choices[0].message.content;
   } catch (error) {
     console.error('Error generating completion:', error);
-    throw error;
+    // Return a fallback response instead of throwing
+    return "Unable to generate a response. If you're seeing this message repeatedly, please check your OpenAI API key in Settings.";
   }
 } 
