@@ -1,0 +1,15 @@
+Reflash
+Copyright 2024 Reflash
+
+This product includes software developed at Reflash (https://github.com/yourusername/reflash).
+
+Third-party components:
+- Next.js (https://nextjs.org/) - Copyright (c) 2024 Vercel, Inc.
+- React (https://reactjs.org/) - Copyright (c) Meta Platforms, Inc. and affiliates
+- Chart.js (https://www.chartjs.org/) - Copyright (c) 2024 Chart.js Contributors
+- OpenAI API Client (https://github.com/openai/openai-node) - Copyright (c) 2024 OpenAI
+- Supabase JS Client (https://supabase.com/) - Copyright (c) 2024 Supabase
+- Marked (https://marked.js.org/) - Copyright (c) 2024 Christopher Jeffrey
+- React Markdown (https://github.com/remarkjs/react-markdown) - Copyright (c) 2024 Espen Hovlandsdal
+- Heroicons (https://heroicons.com/) - Copyright (c) 2024 Tailwind Labs Inc.
+- Tailwind CSS (https://tailwindcss.com/) - Copyright (c) 2024 Tailwind Labs Inc. 
